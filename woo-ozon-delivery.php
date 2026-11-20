@@ -29,6 +29,23 @@ define( 'WOO_OZON_URL', plugin_dir_url( __FILE__ ) );
 
 require_once WOO_OZON_DIR . 'includes/class-ozon-api.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-points.php';
+require_once WOO_OZON_DIR . 'includes/class-ozon-checkout.php';
+require_once WOO_OZON_DIR . 'includes/class-ozon-order.php';
+
+/**
+ * Поднимаем части плагина после загрузки WooCommerce.
+ */
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+
+		Woo_Ozon_Checkout::init();
+		Woo_Ozon_Order::init();
+	}
+);
 
 /**
  * Объявляем совместимость с HPOS: заказы хранятся в своих таблицах WooCommerce.
@@ -218,11 +235,86 @@ add_action(
 );
 
 /**
- * Таблица кэша пунктов выдачи.
+ * Своё расписание крона: раз в 30 минут.
+ *
+ * @param array<string, array<string, mixed>> $schedules Расписания.
+ * @return array<string, array<string, mixed>>
+ */
+function woo_ozon_cron_schedules( array $schedules ): array {
+	$schedules['woo_ozon_half_hour'] = array(
+		'interval' => 1800,
+		'display'  => __( 'Каждые 30 минут', 'woo-ozon-delivery' ),
+	);
+
+	return $schedules;
+}
+add_filter( 'cron_schedules', 'woo_ozon_cron_schedules' );
+
+/**
+ * Страховка: если расписание потерялось (смена темы, импорт базы), заводим заново.
+ */
+add_action(
+	'init',
+	static function (): void {
+		if ( ! wp_next_scheduled( Woo_Ozon_Order::CRON_HOOK ) ) {
+			wp_schedule_event( time() + 600, 'woo_ozon_half_hour', Woo_Ozon_Order::CRON_HOOK );
+		}
+	}
+);
+
+/**
+ * Таблица кэша пунктов выдачи и расписание синхронизации.
  */
 register_activation_hook(
 	WOO_OZON_FILE,
 	static function (): void {
 		Woo_Ozon_Points::install_table();
+
+		if ( ! wp_next_scheduled( Woo_Ozon_Order::CRON_HOOK ) ) {
+			wp_schedule_event( time() + 600, 'woo_ozon_half_hour', Woo_Ozon_Order::CRON_HOOK );
+		}
+	}
+);
+
+/**
+ * Снимаем расписание при отключении.
+ */
+register_deactivation_hook(
+	WOO_OZON_FILE,
+	static function (): void {
+		$timestamp = wp_next_scheduled( Woo_Ozon_Order::CRON_HOOK );
+		if ( $timestamp ) {
+			wp_unschedule_event( $timestamp, Woo_Ozon_Order::CRON_HOOK );
+		}
+	}
+);
+
+/**
+ * Сообщение об ошибке создания заявки в карточке заказа.
+ */
+add_action(
+	'admin_notices',
+	static function (): void {
+		$screen = get_current_screen();
+		if ( ! $screen || 'shop_order' !== $screen->id && 'woocommerce_page_wc-orders' !== $screen->id ) {
+			return;
+		}
+
+		$order_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		if ( $order_id <= 0 ) {
+			return;
+		}
+
+		$error = get_transient( 'woo_ozon_error_' . $order_id );
+		if ( ! is_string( $error ) || '' === $error ) {
+			return;
+		}
+
+		delete_transient( 'woo_ozon_error_' . $order_id );
+
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			esc_html( 'Ozon: ' . $error )
+		);
 	}
 );
