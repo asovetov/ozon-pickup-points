@@ -13,7 +13,8 @@
  * Text Domain:       woo-ozon-delivery
  * Domain Path:       /languages
  * WC requires at least: 8.0
- * WC tested up to:   9.5
+ * WC tested up to:   11.3
+ * Requires Plugins:  woocommerce
  *
  * @package WooOzonDelivery
  */
@@ -101,6 +102,64 @@ add_action(
 	}
 );
 
+
+/**
+ * Сохраняет настройки и возвращает на страницу: иначе F5 отправлял бы форму повторно.
+ */
+add_action(
+	'admin_init',
+	static function (): void {
+		if ( ! isset( $_POST['woo_ozon_nonce'] ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		$nonce = sanitize_text_field( wp_unslash( (string) $_POST['woo_ozon_nonce'] ) );
+		if ( ! wp_verify_nonce( $nonce, 'woo_ozon_save_settings' ) ) {
+			return;
+		}
+
+		$keys = array(
+			'client_id',
+			'client_secret',
+			'token_url',
+			'api_url',
+			'scope',
+			'default_weight_g',
+			'default_length_mm',
+			'default_width_mm',
+			'default_height_mm',
+			'markup_percent',
+		);
+
+		$numeric = array( 'default_weight_g', 'default_length_mm', 'default_width_mm', 'default_height_mm', 'markup_percent' );
+		$saved   = array();
+
+		foreach ( $keys as $key ) {
+			$raw = isset( $_POST[ $key ] ) ? wp_unslash( (string) $_POST[ $key ] ) : '';
+
+			if ( in_array( $key, $numeric, true ) ) {
+				$saved[ $key ] = (string) max( 0, (int) $raw );
+				continue;
+			}
+
+			// Адреса API проверяем как ссылки, остальное — как обычный текст.
+			$saved[ $key ] = in_array( $key, array( 'token_url', 'api_url' ), true )
+				? esc_url_raw( $raw )
+				: sanitize_text_field( $raw );
+		}
+
+		update_option( 'woo_ozon_settings', $saved );
+		Woo_Ozon_Api::flush_token();
+
+		wp_safe_redirect( add_query_arg( 'woo-ozon-saved', '1', wp_get_referer() ?: admin_url( 'admin.php?page=woo-ozon-delivery' ) ) );
+		exit;
+	}
+);
+
 /**
  * Страница настроек.
  */
@@ -124,26 +183,8 @@ function woo_ozon_render_settings_page(): void {
 
 	$nonce_action = 'woo_ozon_save_settings';
 
-	if ( isset( $_POST['woo_ozon_nonce'] ) ) {
-		$nonce = sanitize_text_field( wp_unslash( (string) $_POST['woo_ozon_nonce'] ) );
-
-		if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
-			wp_die( esc_html__( 'Проверка безопасности не пройдена.', 'woo-ozon-delivery' ) );
-		}
-
-		$saved = array();
-		foreach ( array_keys( $fields ) as $key ) {
-			$raw = isset( $_POST[ $key ] ) ? wp_unslash( (string) $_POST[ $key ] ) : '';
-
-			$saved[ $key ] = in_array( $key, array( 'default_weight_g', 'default_length_mm', 'default_width_mm', 'default_height_mm', 'markup_percent' ), true )
-				? (string) max( 0, (int) $raw )
-				: sanitize_text_field( $raw );
-		}
-
-		update_option( 'woo_ozon_settings', $saved );
-		Woo_Ozon_Api::flush_token();
-
-		echo '<div class="notice notice-success"><p>' . esc_html__( 'Настройки сохранены.', 'woo-ozon-delivery' ) . '</p></div>';
+	if ( isset( $_GET['woo-ozon-saved'] ) ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Настройки сохранены.', 'woo-ozon-delivery' ) . '</p></div>';
 	}
 
 	$options = Woo_Ozon_Api::settings();

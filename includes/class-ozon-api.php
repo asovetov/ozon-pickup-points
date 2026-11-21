@@ -77,7 +77,9 @@ class Woo_Ozon_Api {
 
 		$saved = get_option( 'woo_ozon_settings', array() );
 
-		return array_merge( $defaults, is_array( $saved ) ? array_map( 'strval', $saved ) : array() );
+		$saved = is_array( $saved ) ? array_filter( $saved, 'is_scalar' ) : array();
+
+		return array_merge( $defaults, array_map( 'strval', $saved ) );
 	}
 
 	/**
@@ -204,6 +206,12 @@ class Woo_Ozon_Api {
 
 			$code = (int) wp_remote_retrieve_response_code( $response );
 
+			// 429 и 5xx — временные: одна повторная попытка через паузу.
+			if ( in_array( $code, array( 429, 500, 502, 503, 504 ), true ) && $attempt < 1 ) {
+				sleep( 2 );
+				continue;
+			}
+
 			if ( ! in_array( $code, self::REDIRECT_CODES, true ) ) {
 				$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 
@@ -229,19 +237,20 @@ class Woo_Ozon_Api {
 			}
 
 			// Сохраняем cookie из ответа: именно она открывает следующий запрос.
+			// Разбираем регуляркой, а не explode(','): в Expires тоже стоит запятая
+			// («Expires=Wed, 21 Oct 2026»), и наивный разбор режет cookie пополам.
 			$set_cookie = wp_remote_retrieve_header( $response, 'set-cookie' );
 			if ( is_array( $set_cookie ) ) {
-				$set_cookie = implode( '; ', $set_cookie );
+				$set_cookie = implode( "\n", $set_cookie );
 			}
 			if ( is_string( $set_cookie ) && '' !== $set_cookie ) {
 				$pairs = array();
-				foreach ( explode( ',', $set_cookie ) as $chunk ) {
-					$pair = trim( explode( ';', $chunk )[0] );
-					if ( '' !== $pair ) {
-						$pairs[] = $pair;
+				if ( preg_match_all( '/(?:^|[\n,;]\s*)([A-Za-z0-9_\-]+)=([^;,\n]*)/', $set_cookie, $matches, PREG_SET_ORDER ) ) {
+					foreach ( $matches as $match ) {
+						$pairs[ $match[1] ] = $match[1] . '=' . $match[2];
 					}
 				}
-				$cookie = implode( '; ', $pairs );
+				$cookie = implode( '; ', array_values( $pairs ) );
 			}
 
 			$url = self::resolve_url( $url, $location );

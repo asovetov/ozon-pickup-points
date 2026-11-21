@@ -169,9 +169,16 @@ class Woo_Ozon_Points {
 			);
 		}
 
+		// Пункты, которых Ozon больше не отдаёт, закрыты: убираем их из кэша,
+		// иначе покупатель выберет пункт, куда доставка уже не работает.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$removed = (int) $wpdb->query(
+			$wpdb->prepare( "DELETE FROM " . self::table() . ' WHERE updated_at < %s', $now )
+		);
+
 		return array(
 			'ok'      => true,
-			'message' => sprintf( 'Обновлено пунктов: %d.', $updated ),
+			'message' => sprintf( 'Обновлено пунктов: %d, закрытых убрано: %d.', $updated, $removed ),
 			'count'   => self::count(),
 		);
 	}

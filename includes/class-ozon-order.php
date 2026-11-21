@@ -25,17 +25,20 @@ class Woo_Ozon_Order {
 	public const CRON_HOOK           = 'woo_ozon_sync_statuses';
 
 	/**
-	 * Соответствие статусов Ozon статусам заказа.
+	 * Соответствие статусов Ozon статусам WooCommerce по умолчанию.
+	 *
+	 * Только штатные статусы: у чужого сайта может не быть ни «Доставляется», ни
+	 * «Готов к выдаче». Свои названия подключаются фильтром `woo_ozon_status_map`.
 	 *
 	 * @var array<string, string>
 	 */
-	private const STATUS_MAP = array(
-		'created'             => 'wc-shipped',
-		'awaiting_approve'    => 'wc-shipped',
-		'awaiting_packaging'  => 'wc-shipped',
-		'sent'                => 'wc-shipped',
-		'delivering'          => 'wc-shipped',
-		'ready_for_pickup'    => 'wc-ready-to-pickup',
+	private const CORE_MAP = array(
+		'created'             => 'wc-processing',
+		'awaiting_approve'    => 'wc-processing',
+		'awaiting_packaging'  => 'wc-processing',
+		'sent'                => 'wc-processing',
+		'delivering'          => 'wc-processing',
+		'ready_for_pickup'    => 'wc-processing',
 		'delivered'           => 'wc-completed',
 		'cancelled'           => 'wc-cancelled',
 		'arbitration'         => 'wc-on-hold',
@@ -47,6 +50,22 @@ class Woo_Ozon_Order {
 	 * @var string[]
 	 */
 	private const TERMINAL = array( 'delivered', 'cancelled', 'cancelled_from_split_pending' );
+
+	/**
+	 * Карта статусов с учётом фильтра.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function status_map(): array {
+		/**
+		 * Позволяет перевести статусы Ozon в свои статусы магазина.
+		 *
+		 * @param array<string, string> $map Соответствие «статус Ozon → wc-статус».
+		 */
+		$map = apply_filters( 'woo_ozon_status_map', self::CORE_MAP );
+
+		return is_array( $map ) ? $map : self::CORE_MAP;
+	}
 
 	/**
 	 * Подключает хуки.
@@ -333,10 +352,13 @@ class Woo_Ozon_Order {
 			return;
 		}
 
+		// Берём заказы, у которых есть номер посылки, и не смотрим на название статуса:
+		// у каждого магазина свои статусы, а признак один — заявка создана.
 		$orders = wc_get_orders(
 			array(
 				'limit'      => 50,
-				'status'     => array( 'wc-shipped', 'wc-ready-to-pickup' ),
+				'orderby'    => 'date',
+				'order'      => 'DESC',
 				'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 					array(
 						'key'     => self::META_POSTING_NUMBER,
@@ -349,6 +371,11 @@ class Woo_Ozon_Order {
 		foreach ( $orders as $order ) {
 			$posting_number = (string) $order->get_meta( self::META_POSTING_NUMBER );
 			if ( '' === $posting_number ) {
+				continue;
+			}
+
+			// Доставленные и отменённые не опрашиваем повторно.
+			if ( in_array( (string) $order->get_meta( self::META_STATUS ), self::TERMINAL, true ) ) {
 				continue;
 			}
 
@@ -384,7 +411,8 @@ class Woo_Ozon_Order {
 			$order->update_meta_data( self::META_STATUS, $raw );
 			$order->save();
 
-			$target = self::STATUS_MAP[ $raw ] ?? '';
+			$map    = self::status_map();
+			$target = $map[ $raw ] ?? '';
 			if ( '' === $target || $order->get_status() === str_replace( 'wc-', '', $target ) ) {
 				continue;
 			}

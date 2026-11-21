@@ -37,6 +37,7 @@ class Woo_Ozon_Checkout {
 		add_action( 'wp_ajax_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
 		add_action( 'wp_ajax_nopriv_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
 		add_action( 'woocommerce_checkout_process', array( __CLASS__, 'validate' ) );
+		add_action( 'woocommerce_checkout_update_order_review', array( __CLASS__, 'remember_point' ) );
 		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'save_to_order' ), 10, 2 );
 		add_action( 'woocommerce_admin_order_data_after_shipping_address', array( __CLASS__, 'render_admin_point' ) );
 		add_filter( 'woocommerce_email_order_meta_fields', array( __CLASS__, 'email_fields' ), 10, 3 );
@@ -108,6 +109,7 @@ class Woo_Ozon_Checkout {
 		}
 
 		$selected = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_id', '' ) : '';
+		$selected_label = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_label', '' ) : '';
 		$city     = WC()->customer ? (string) WC()->customer->get_billing_city() : '';
 		?>
 		<div class="woo-ozon-pvz" id="woo-ozon-pvz">
@@ -121,7 +123,7 @@ class Woo_Ozon_Checkout {
 			<div class="woo-ozon-pvz__list" id="woo-ozon-list" role="listbox" aria-live="polite"></div>
 
 			<input type="hidden" name="woo_ozon_point_id" id="woo-ozon-point-id" value="<?php echo esc_attr( $selected ); ?>">
-			<input type="hidden" name="woo_ozon_point_label" id="woo-ozon-point-label" value="">
+			<input type="hidden" name="woo_ozon_point_label" id="woo-ozon-point-label" value="<?php echo esc_attr( $selected_label ); ?>">
 		</div>
 		<?php
 	}
@@ -148,6 +150,29 @@ class Woo_Ozon_Checkout {
 		}
 
 		wp_send_json_success( array( 'points' => $points ) );
+	}
+
+	/**
+	 * Запоминает выбранный пункт между пересборками оформления.
+	 *
+	 * WooCommerce перерисовывает блок оплаты на каждое изменение адреса, и без этого
+	 * выбранный пункт пропадал бы из поля.
+	 *
+	 * @param string $post_data Данные формы в виде строки запроса.
+	 */
+	public static function remember_point( string $post_data ): void {
+		if ( ! WC()->session ) {
+			return;
+		}
+
+		parse_str( $post_data, $data );
+
+		$point_id = isset( $data['woo_ozon_point_id'] ) ? absint( $data['woo_ozon_point_id'] ) : 0;
+
+		WC()->session->set( 'woo_ozon_point_id', $point_id > 0 ? (string) $point_id : '' );
+
+		$label = isset( $data['woo_ozon_point_label'] ) ? sanitize_text_field( (string) $data['woo_ozon_point_label'] ) : '';
+		WC()->session->set( 'woo_ozon_point_label', $label );
 	}
 
 	/**
@@ -204,6 +229,7 @@ class Woo_Ozon_Checkout {
 
 		if ( WC()->session ) {
 			WC()->session->set( 'woo_ozon_point_id', '' );
+			WC()->session->set( 'woo_ozon_point_label', '' );
 		}
 	}
 

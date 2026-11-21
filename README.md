@@ -1,27 +1,41 @@
 # Ozon Delivery для WooCommerce
 
-Плагин доставки в пункты выдачи Ozon: кэш ПВЗ, тариф по весу в корзине, точный расчёт и создание заявки через Ozon Delivery API.
+Доставка в пункты выдачи Ozon: кэш ПВЗ, тариф по весу в корзине, выбор пункта в оформлении,
+создание заявки из админки и синхронизация статусов через Ozon Delivery API.
 
-Написан для реального магазина, который работает на WooCommerce: без подписок, без внешних сервисов, все данные остаются на своём сервере.
+Написан для работающего магазина на WooCommerce: без подписок, без посредников, все данные
+остаются на своём сервере.
 
-**Статус:** 0.1.0. Работает весь путь заказа: покупатель выбирает пункт выдачи в оформлении, менеджер создаёт заявку кнопкой в карточке заказа, статус посылки подтягивается кроном каждые 30 минут и переносится в статус заказа. Не сделано: печать этикеток, отмена и возвраты через API.
+**Статус:** 0.1.0. Весь путь заказа собран и проверен на локальном стенде: активация, кэш
+пунктов, поиск и выбор ПВЗ в оформлении, создание заявки кнопкой в заказе, опрос статусов
+кроном. С боевыми ключами Ozon не проверялось — для этого нужен магазин с доступом к
+Delivery API. Не сделано: печать этикеток, отмена и возвраты через API.
 
 ## Что умеет
 
-- **Кэш пунктов выдачи.** Ozon отдаёт ПВЗ страницами по курсору — плагин складывает их в свою таблицу и ищет по городу и адресу без обращения к API на каждый запрос.
-- **Метод доставки с тарифом по весу.** В корзине Ozon не может посчитать цену: расчёт требует конкретный пункт и телефон получателя. Поэтому в корзине работает тариф по весу, а точная стоимость приходит при создании заявки.
-- **Клиент Ozon Delivery API.** OAuth `client_credentials`, кэш токена, повтор запроса после редиректа 307 с cookie `__Secure-ETC` — без этого API отдаёт цикл редиректов вместо ответа.
-- **Выбор пункта выдачи в оформлении.** Поиск по кэшу без запросов к Ozon, выбранный пункт сохраняется в заказ и виден в письмах и в админке.
-- **Создание заявки с ключом идемпотентности.** Повторное нажатие кнопки не создаёт вторую посылку.
-- **Синхронизация статусов.** Крон раз в 30 минут опрашивает `/v1/posting/info` и переводит заказ в «Доставляется», «Готов к выдаче» или «Выполнен»; ошибки API пишутся в заметки заказа.
+- **Кэш пунктов выдачи.** Ozon отдаёт ПВЗ страницами по курсору — плагин складывает их в свою
+  таблицу и ищет по городу и адресу без запроса к API. Закрытые пункты при обновлении удаляются.
+- **Метод доставки с тарифом по весу.** Точную цену Ozon считает только по конкретному пункту
+  и телефону получателя, поэтому в корзине работает тариф по весу, а точная стоимость приходит
+  при создании заявки.
+- **Клиент Ozon Delivery API.** OAuth `client_credentials`, кэш токена, повтор запроса после
+  редиректа 307 с cookie `__Secure-ETC`, одна повторная попытка на `429` и `5xx`.
+- **Выбор пункта в оформлении.** Поиск по кэшу, выбранный пункт переживает пересборку
+  оформления, сохраняется в заказ, виден в админке и в письмах.
+- **Создание заявки с ключом идемпотентности.** Повторное нажатие кнопки не создаёт вторую
+  посылку; номер заявки и посылки остаются в заказе.
+- **Синхронизация статусов.** Крон раз в 30 минут опрашивает `/v1/posting/info` и переводит
+  заказ в «Выполнен» или «Отменён», ошибки пишет в заметки заказа.
+- **Совместимость с HPOS** объявлена.
 
 ## Установка
 
 1. Скопируйте папку `woo-ozon-delivery` в `wp-content/plugins/`.
 2. Активируйте плагин в разделе «Плагины».
-3. WooCommerce → Ozon Delivery: укажите Client ID и Client Secret из личного кабинета Ozon (Настройки → API).
+3. WooCommerce → Ozon Delivery: укажите Client ID и Client Secret из личного кабинета Ozon
+   (Настройки → API).
 4. Нажмите «Обновить пункты выдачи» — плагин загрузит ПВЗ в кэш.
-5. WooCommerce → Настройки → Доставка: добавьте метод «Ozon» в нужную зону и задайте тарифы по весу.
+5. WooCommerce → Настройки → Доставка: добавьте метод «Ozon» в нужную зону и задайте тарифы.
 
 ## Настройки
 
@@ -41,19 +55,43 @@
 10:900
 ```
 
+Если вес не попал ни в одну полосу, применяется базовая стоимость.
+
+## Свои статусы заказов
+
+По умолчанию статусы Ozon переводятся в штатные: `processing`, `completed`, `cancelled`,
+`on-hold`. Если в магазине свои статусы («Доставляется», «Готов к выдаче»), их подключают
+фильтром:
+
+```php
+add_filter( 'woo_ozon_status_map', function ( array $map ): array {
+	$map['sent']             = 'wc-shipped';
+	$map['delivering']       = 'wc-shipped';
+	$map['ready_for_pickup'] = 'wc-ready-to-pickup';
+
+	return $map;
+} );
+```
+
+## Почему клиент выглядит необычно
+
+Каждый POST к Ozon Delivery API сначала отвечает `307` с cookie `__Secure-ETC` и отдаёт данные
+только при повторе того же запроса с этой cookie. Автоматическое следование за редиректом
+зацикливается на `?__rr=N`, поэтому плагин обрабатывает редирект сам и повторяет запрос.
+
 ## Требования
 
 - WordPress 6.4+
-- WooCommerce 8.0+
+- WooCommerce 8.0+ (проверено на 11.3)
 - PHP 8.1+
-- Совместимость с HPOS (хранение заказов в отдельных таблицах) объявлена
 
 ## Безопасность
 
-- Все формы проверяют nonce, действия в админке требуют `manage_woocommerce`.
-- Ввод очищается (`sanitize_text_field`, `absint`), вывод экранируется.
+- Действия в админке требуют `manage_woocommerce`, формы проверяют nonce.
+- Ввод очищается (`sanitize_text_field`, `absint`, `esc_url_raw`), вывод экранируется.
 - Запросы к своей таблице идут через `$wpdb->prepare`.
 - Ключи API хранятся в опциях WordPress и не попадают в логи и в HTML.
+- При удалении плагина настройки, кэш, расписание и временные данные удаляются (`uninstall.php`).
 
 ## Лицензия
 
@@ -63,19 +101,31 @@ GPL-3.0-or-later. См. [LICENSE](LICENSE).
 
 # Ozon Delivery for WooCommerce (EN)
 
-WooCommerce shipping plugin for Ozon pickup points: pickup point cache, weight-based rates at cart, exact quote and shipment creation through the Ozon Delivery API.
+WooCommerce shipping plugin for Ozon pickup points: pickup point cache, weight-based rates in
+the cart, pickup point selection at checkout, shipment creation from the order screen and status
+sync through the Ozon Delivery API.
 
-Self-hosted, no subscriptions, no third-party services — all data stays on your server.
+Self-hosted: no subscriptions, no third-party services, all data stays on your server.
 
-**Status:** 0.1.0. The full order flow works: the customer picks a pickup point at checkout, the manager creates the shipment from the order screen, and the posting status is polled every 30 minutes and mapped to the order status. Not implemented: label printing, cancellation and returns via API.
+**Status:** 0.1.0. The full order flow is implemented and tested on a local stand: activation,
+point cache, checkout selection, shipment creation, cron status polling. Not tested with live
+Ozon credentials — that requires a store with Delivery API access. Not implemented: label
+printing, cancellation and returns via API.
 
-### Why the client looks unusual
+### Why the API client looks unusual
 
-Every Ozon Delivery API POST answers `307` with a `__Secure-ETC` cookie and only returns data when the same request is replayed with that cookie. Following redirects automatically loops on `?__rr=N`, so the plugin handles the redirect explicitly and replays the request.
+Every POST to the Ozon Delivery API answers `307` with a `__Secure-ETC` cookie and only returns
+data when the same request is replayed with that cookie. Following redirects automatically loops
+on `?__rr=N`, so the plugin handles the redirect explicitly. `429` and `5xx` get one retry.
+
+### Custom order statuses
+
+Ozon statuses map to core WooCommerce statuses by default. Use the `woo_ozon_status_map` filter
+to map them to your own.
 
 ### Requirements
 
-WordPress 6.4+, WooCommerce 8.0+, PHP 8.1+. HPOS compatible.
+WordPress 6.4+, WooCommerce 8.0+ (tested on 11.3), PHP 8.1+. HPOS compatible.
 
 ### License
 

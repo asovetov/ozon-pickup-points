@@ -122,6 +122,10 @@
 
 		input.dataset.bound = '1';
 
+		// Разметка перерисовалась — прошлый запрос больше не действует,
+		// иначе повторный поиск по тому же городу молча ничего не делает.
+		lastQuery = '';
+
 		input.addEventListener('input', function () {
 			clearTimeout(timer);
 			var value = input.value.trim();
