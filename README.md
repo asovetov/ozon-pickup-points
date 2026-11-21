@@ -4,14 +4,16 @@
 
 Написан для реального магазина, который работает на WooCommerce: без подписок, без внешних сервисов, все данные остаются на своём сервере.
 
-**Статус:** 0.1.0, в разработке. Работают: клиент API, кэш пунктов выдачи, метод доставки с тарифами по весу, страница настроек. В работе: выбор пункта в оформлении заказа, создание заявки из админки, синхронизация статусов.
+**Статус:** 0.1.0. Работает весь путь заказа: покупатель выбирает пункт выдачи в оформлении, менеджер создаёт заявку кнопкой в карточке заказа, статус посылки подтягивается кроном каждые 30 минут и переносится в статус заказа. Не сделано: печать этикеток, отмена и возвраты через API.
 
 ## Что умеет
 
 - **Кэш пунктов выдачи.** Ozon отдаёт ПВЗ страницами по курсору — плагин складывает их в свою таблицу и ищет по городу и адресу без обращения к API на каждый запрос.
 - **Метод доставки с тарифом по весу.** В корзине Ozon не может посчитать цену: расчёт требует конкретный пункт и телефон получателя. Поэтому в корзине работает тариф по весу, а точная стоимость приходит при создании заявки.
 - **Клиент Ozon Delivery API.** OAuth `client_credentials`, кэш токена, повтор запроса после редиректа 307 с cookie `__Secure-ETC` — без этого API отдаёт цикл редиректов вместо ответа.
+- **Выбор пункта выдачи в оформлении.** Поиск по кэшу без запросов к Ozon, выбранный пункт сохраняется в заказ и виден в письмах и в админке.
 - **Создание заявки с ключом идемпотентности.** Повторное нажатие кнопки не создаёт вторую посылку.
+- **Синхронизация статусов.** Крон раз в 30 минут опрашивает `/v1/posting/info` и переводит заказ в «Доставляется», «Готов к выдаче» или «Выполнен»; ошибки API пишутся в заметки заказа.
 
 ## Установка
 
@@ -65,7 +67,7 @@ WooCommerce shipping plugin for Ozon pickup points: pickup point cache, weight-b
 
 Self-hosted, no subscriptions, no third-party services — all data stays on your server.
 
-**Status:** 0.1.0, work in progress. Working: API client, pickup point cache, weight-based shipping method, settings page. In progress: pickup point selection at checkout, shipment creation from admin, status sync.
+**Status:** 0.1.0. The full order flow works: the customer picks a pickup point at checkout, the manager creates the shipment from the order screen, and the posting status is polled every 30 minutes and mapped to the order status. Not implemented: label printing, cancellation and returns via API.
 
 ### Why the client looks unusual
 
