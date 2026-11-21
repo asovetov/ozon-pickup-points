@@ -104,15 +104,14 @@ class Woo_Ozon_Checkout {
 	 * Поле выбора пункта на странице оформления.
 	 */
 	public static function render_field(): void {
-		if ( ! self::ozon_selected() ) {
-			return;
-		}
-
+		// Блок рисуем всегда: WooCommerce обновляет по AJAX только таблицу заказа и оплату,
+		// а всё, что стоит между ними, остаётся в разметке с прошлой загрузки.
+		// Видимость переключает скрипт по выбранному способу доставки.
 		$selected = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_id', '' ) : '';
 		$selected_label = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_label', '' ) : '';
 		$city     = WC()->customer ? (string) WC()->customer->get_billing_city() : '';
 		?>
-		<div class="woo-ozon-pvz" id="woo-ozon-pvz">
+		<div class="woo-ozon-pvz" id="woo-ozon-pvz"<?php echo self::ozon_selected() ? '' : ' hidden'; ?>>
 			<h3><?php echo esc_html__( 'Пункт выдачи Ozon', 'woo-ozon-delivery' ); ?></h3>
 
 			<p class="form-row form-row-wide">

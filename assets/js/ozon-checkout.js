@@ -142,12 +142,40 @@
 		}
 	}
 
-	document.addEventListener('DOMContentLoaded', bind);
+	/* Показываем блок выбора ПВЗ только когда выбран способ доставки Ozon. */
+	function syncVisibility() {
+		var box = document.getElementById('woo-ozon-pvz');
+		if (!box) {
+			return;
+		}
+
+		var chosen = document.querySelector('#shipping_method input:checked');
+		var isOzon = !!chosen && chosen.value.indexOf('woo_ozon') === 0;
+
+		if (isOzon) {
+			box.removeAttribute('hidden');
+		} else {
+			box.setAttribute('hidden', 'hidden');
+		}
+	}
+
+	document.addEventListener('DOMContentLoaded', function () {
+		bind();
+		syncVisibility();
+	});
+
+	document.addEventListener('change', function (event) {
+		var target = event.target;
+		if (target && target.name && target.name.indexOf('shipping_method') === 0) {
+			syncVisibility();
+		}
+	}, true);
 
 	if (window.jQuery) {
 		$(document.body).on('updated_checkout', function () {
 			lastQuery = '';
 			bind();
+			syncVisibility();
 		});
 	}
 })(window.jQuery);

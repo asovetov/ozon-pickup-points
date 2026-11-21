@@ -225,8 +225,10 @@ class Woo_Ozon_Points {
 		}
 
 		if ( '' !== $query ) {
-			$where[]  = '(address LIKE %s OR name LIKE %s)';
+			// Город тоже ищем: покупатели чаще пишут «Санкт-Петербург», чем адрес пункта.
+			$where[]  = '(address LIKE %s OR name LIKE %s OR city LIKE %s)';
 			$like     = '%' . $wpdb->esc_like( $query ) . '%';
+			$params[] = $like;
 			$params[] = $like;
 			$params[] = $like;
 		}
