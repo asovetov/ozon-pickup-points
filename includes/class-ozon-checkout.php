@@ -63,13 +63,18 @@ class Woo_Ozon_Checkout {
 			'woo-ozon-checkout',
 			'WooOzon',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'woo_ozon_points' ),
+				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'woo_ozon_points' ),
+				'quoteNonce' => wp_create_nonce( 'woo_ozon_quote' ),
 				'i18n'    => array(
 					'empty'   => __( 'Введите город или адрес пункта', 'woo-ozon-delivery' ),
 					'loading' => __( 'Ищем пункты…', 'woo-ozon-delivery' ),
 					'none'    => __( 'Пунктов не нашлось. Попробуйте другой город.', 'woo-ozon-delivery' ),
 					'error'   => __( 'Не удалось получить список пунктов.', 'woo-ozon-delivery' ),
+					'quoting' => __( 'Считаем доставку…', 'woo-ozon-delivery' ),
+					'quote'   => __( 'Доставка Ozon: %s', 'woo-ozon-delivery' ),
+					'quoteFail' => __( 'Ozon не рассчитал доставку: %s', 'woo-ozon-delivery' ),
+					'needPhone' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'woo-ozon-delivery' ),
 				),
 			)
 		);
@@ -120,6 +125,8 @@ class Woo_Ozon_Checkout {
 			</p>
 
 			<div class="woo-ozon-pvz__list" id="woo-ozon-list" role="listbox" aria-live="polite"></div>
+
+			<p class="woo-ozon-quote" id="woo-ozon-quote-status" aria-live="polite"></p>
 
 			<input type="hidden" name="woo_ozon_point_id" id="woo-ozon-point-id" value="<?php echo esc_attr( $selected ); ?>">
 			<input type="hidden" name="woo_ozon_point_label" id="woo-ozon-point-label" value="<?php echo esc_attr( $selected_label ); ?>">

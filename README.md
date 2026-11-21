@@ -14,7 +14,7 @@
 
 ![Выбор пункта выдачи Ozon на оформлении заказа](docs/checkout-pvz.png)
 
-**Статус:** 0.1.2. Весь путь заказа собран и проверен на локальном стенде: активация, кэш
+**Статус:** 0.2.0. Весь путь заказа собран и проверен на локальном стенде: активация, кэш
 пунктов, поиск и выбор ПВЗ в оформлении, создание заявки кнопкой в заказе, опрос статусов
 кроном. С боевыми ключами Ozon не проверялось: для этого нужен магазин с доступом к
 Delivery API. Не сделано: печать этикеток, отмена и возвраты через API.
@@ -23,9 +23,10 @@ Delivery API. Не сделано: печать этикеток, отмена �
 
 - **Кэш пунктов выдачи.** Ozon отдаёт ПВЗ страницами по курсору, плагин складывает их в свою
   таблицу и ищет по городу и адресу без запроса к API. Закрытые пункты при обновлении удаляются.
-- **Метод доставки с тарифом по весу.** Точную цену Ozon считает только по конкретному пункту
-  и телефону получателя, поэтому в корзине работает тариф по весу, а точная стоимость приходит
-  при создании заявки.
+- **Цену считает Ozon.** Как только покупатель выбрал пункт выдачи и указал телефон, плагин
+  спрашивает стоимость у `/v1/order/checkout` (этот запрос только считает, заявку не создаёт)
+  и подставляет её в способ доставки. Запасной тариф по весу нужен в двух случаях: пока пункт
+  не выбран и если Ozon не ответил.
 - **Клиент Ozon Delivery API.** OAuth `client_credentials`, кэш токена, повтор запроса после
   редиректа 307 с cookie `__Secure-ETC`, одна повторная попытка на `429` и `5xx`.
 - **Выбор пункта в оформлении.** Поиск по кэшу, выбранный пункт переживает пересборку
@@ -58,9 +59,10 @@ git clone https://github.com/asovetov/woo-ozon-delivery.git
 | Client ID / Secret | Доступ к Ozon Delivery API |
 | URL токена, URL API, Scope | По умолчанию боевые адреса Ozon |
 | Вес и габариты по умолчанию | Подставляются, если у товара не заполнены |
-| Наценка на доставку, % | Упаковка и обработка |
+| Запасной тариф по весу | Показывается, пока пункт не выбран или если Ozon не ответил |
+| Наценка на доставку, ₽ | Упаковка и обработка |
 
-Тарифы по весу задаются строками `до_кг:цена`:
+Запасные тарифы по весу задаются строками `до_кг:цена`:
 
 ```
 1:350
@@ -115,13 +117,13 @@ GPL-3.0-or-later. См. [LICENSE](LICENSE).
 
 # Ozon Delivery for WooCommerce (EN)
 
-WooCommerce shipping plugin for Ozon pickup points: pickup point cache, weight-based rates in
-the cart, pickup point selection at checkout, shipment creation from the order screen and status
-sync through the Ozon Delivery API.
+WooCommerce shipping plugin for Ozon pickup points: pickup point cache, delivery price from
+Ozon itself, pickup point selection at checkout, shipment creation from the order screen and
+status sync through the Ozon Delivery API.
 
 Self-hosted: no subscriptions, no third-party services, all data stays on your server.
 
-**Status:** 0.1.2. The full order flow is implemented and tested on a local stand: activation,
+**Status:** 0.2.0. The full order flow is implemented and tested on a local stand: activation,
 point cache, checkout selection, shipment creation, cron status polling. Not tested with live
 Ozon credentials: that requires a store with Delivery API access. Not implemented: label
 printing, cancellation and returns via API.

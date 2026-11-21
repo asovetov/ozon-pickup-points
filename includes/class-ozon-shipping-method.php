@@ -2,9 +2,9 @@
 /**
  * Метод доставки «Ozon».
  *
- * В корзине точную цену Ozon не отдаёт: расчёт требует конкретный пункт выдачи и телефон
- * получателя. Поэтому в корзине работает тариф по весу, а точная стоимость приходит при
- * создании заявки в админке — там же её видно рядом с заказом.
+ * Цену считает Ozon: как только покупатель выбрал пункт выдачи и указал телефон, плагин
+ * спрашивает стоимость у API. Тариф по весу остаётся запасным: он показывается, пока пункт
+ * не выбран или если Ozon не ответил.
  *
  * @package WooOzonDelivery
  */
@@ -62,10 +62,10 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 				'desc_tip'    => true,
 			),
 			'weight_bands' => array(
-				'title'       => __( 'Тарифы по весу', 'woo-ozon-delivery' ),
+				'title'       => __( 'Запасной тариф по весу', 'woo-ozon-delivery' ),
 				'type'        => 'textarea',
 				'default'     => "1:350\n3:450\n5:600\n10:900",
-				'description' => __( 'По одной строке: «до_кг:цена». Например «1:350» — до 1 кг стоит 350 ₽.', 'woo-ozon-delivery' ),
+				'description' => __( 'Нужен только пока пункт выдачи не выбран или если Ozon не ответил. Основную цену считает Ozon. По одной строке: «до_кг:цена».', 'woo-ozon-delivery' ),
 				'desc_tip'    => true,
 			),
 			'free_min'    => array(
@@ -161,8 +161,17 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 	 */
 	public function calculate_shipping( $package = array() ): void {
 		$weight = $this->package_weight_kg( $package );
-		$cost   = $this->band_cost( $weight );
-		$cost  += (float) $this->get_option( 'markup', 0 );
+		$quote  = class_exists( 'Woo_Ozon_Quote' ) ? Woo_Ozon_Quote::current() : null;
+
+		if ( null !== $quote ) {
+			$cost  = $quote;
+			$exact = true;
+		} else {
+			$cost  = $this->band_cost( $weight );
+			$exact = false;
+		}
+
+		$cost += (float) $this->get_option( 'markup', 0 );
 
 		$free_min = (float) $this->get_option( 'free_min', 0 );
 		if ( $free_min > 0 ) {
@@ -178,9 +187,9 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 				'label'   => $this->title,
 				'cost'    => max( 0, $cost ),
 				'package' => $package,
-				'meta_data' => array(
-					__( 'Вес заказа', 'woo-ozon-delivery' ) => wc_format_weight( $weight ),
-				),
+				'meta_data' => $exact
+					? array( __( 'Расчёт Ozon', 'woo-ozon-delivery' ) => wc_format_weight( $weight ) )
+					: array( __( 'Предварительно, по весу', 'woo-ozon-delivery' ) => wc_format_weight( $weight ) ),
 			)
 		);
 	}

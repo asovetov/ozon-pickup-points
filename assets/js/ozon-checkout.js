@@ -13,6 +13,53 @@
 		return document.getElementById('woo-ozon-list');
 	}
 
+	function setStatus(text) {
+		var box = document.getElementById('woo-ozon-quote-status');
+		if (box) {
+			box.textContent = text || '';
+		}
+	}
+
+	/* Ozon считает доставку для конкретного пункта и телефона. Спрашиваем цену сразу
+	   после выбора пункта и обновляем итоги оформления. */
+	function quote(pointId) {
+		if (!pointId || !window.WooOzon || !WooOzon.quoteNonce) {
+			return;
+		}
+
+		var phone = document.getElementById('billing_phone');
+		if (!phone || !phone.value.trim()) {
+			setStatus(WooOzon.i18n.needPhone);
+			return;
+		}
+
+		setStatus(WooOzon.i18n.quoting);
+
+		var body = new FormData();
+		body.append('action', 'woo_ozon_quote');
+		body.append('nonce', WooOzon.quoteNonce);
+		body.append('point_id', pointId);
+		body.append('phone', phone.value.trim());
+
+		fetch(WooOzon.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: body })
+			.then(function (response) { return response.json(); })
+			.then(function (json) {
+				if (json && json.success) {
+					setStatus(WooOzon.i18n.quote.replace('%s', json.data.formatted));
+					if (window.jQuery) {
+						$(document.body).trigger('update_checkout');
+					}
+					return;
+				}
+
+				var reason = (json && json.data && json.data.message) || WooOzon.i18n.error;
+				setStatus(WooOzon.i18n.quoteFail.replace('%s', reason));
+			})
+			.catch(function () {
+				setStatus(WooOzon.i18n.quoteFail.replace('%s', WooOzon.i18n.error));
+			});
+	}
+
 	function setPoint(id, label) {
 		var idField = document.getElementById('woo-ozon-point-id');
 		var labelField = document.getElementById('woo-ozon-point-label');
@@ -29,6 +76,8 @@
 		if (window.jQuery) {
 			$(document.body).trigger('update_checkout');
 		}
+
+		quote(id);
 	}
 
 	function render(points, query) {
@@ -159,9 +208,36 @@
 		}
 	}
 
+	var lastQuotedTotal = null;
+
+	function subtotal() {
+		var el = document.querySelector('.cart-subtotal .amount, .woocommerce-checkout-review-order-table .cart-subtotal td');
+		if (!el) {
+			return '';
+		}
+		return el.textContent.replace(/\s+/g, ' ').trim();
+	}
+
+	function quoteIfNeeded() {
+		var chosen = document.getElementById('woo-ozon-point-id');
+		if (!chosen || !chosen.value) {
+			return;
+		}
+
+		var current = subtotal();
+		if (current && current === lastQuotedTotal) {
+			return;
+		}
+
+		lastQuotedTotal = current;
+		quote(chosen.value);
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		bind();
 		syncVisibility();
+		// Пункт мог сохраниться в сессии с прошлого захода: цену всё равно надо получить.
+		quoteIfNeeded();
 	});
 
 	document.addEventListener('change', function (event) {
@@ -171,11 +247,29 @@
 		}
 	}, true);
 
+	/* Телефон участвует в расчёте: изменился номер — пересчитываем цену. */
+	var phoneTimer = null;
+	document.addEventListener('input', function (event) {
+		var target = event.target;
+		if (!target || target.id !== 'billing_phone') {
+			return;
+		}
+
+		var chosen = document.getElementById('woo-ozon-point-id');
+		if (!chosen || !chosen.value) {
+			return;
+		}
+
+		clearTimeout(phoneTimer);
+		phoneTimer = setTimeout(function () { quote(chosen.value); }, 700);
+	});
+
 	if (window.jQuery) {
 		$(document.body).on('updated_checkout', function () {
 			lastQuery = '';
 			bind();
 			syncVisibility();
+			quoteIfNeeded();
 		});
 	}
 })(window.jQuery);

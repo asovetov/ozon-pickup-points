@@ -3,7 +3,7 @@
  * Plugin Name:       Ozon Delivery for WooCommerce
  * Plugin URI:        https://github.com/asovetov/woo-ozon-delivery
  * Description:       Доставка Ozon для WooCommerce: пункты выдачи, расчёт стоимости и создание заявки через Ozon Delivery API.
- * Version:           0.1.2
+ * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            3D-Club
@@ -23,13 +23,14 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WOO_OZON_VERSION', '0.1.2' );
+define( 'WOO_OZON_VERSION', '0.2.0' );
 define( 'WOO_OZON_FILE', __FILE__ );
 define( 'WOO_OZON_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WOO_OZON_URL', plugin_dir_url( __FILE__ ) );
 
 require_once WOO_OZON_DIR . 'includes/class-ozon-api.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-points.php';
+require_once WOO_OZON_DIR . 'includes/class-ozon-quote.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-checkout.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-order.php';
 
@@ -43,6 +44,7 @@ add_action(
 			return;
 		}
 
+		Woo_Ozon_Quote::init();
 		Woo_Ozon_Checkout::init();
 		Woo_Ozon_Order::init();
 	}

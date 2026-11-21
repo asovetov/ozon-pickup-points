@@ -75,3 +75,13 @@
 	color: var(--c-text-muted, #64748b);
 	font-size: 0.9em;
 }
+
+.woo-ozon-quote {
+	margin: 8px 0 0;
+	color: var(--c-text-muted, #64748b);
+	font-size: 0.9em;
+}
+
+.woo-ozon-quote:empty {
+	display: none;
+}

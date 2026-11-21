@@ -4,7 +4,7 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.2
+Stable tag: 0.2.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -14,12 +14,13 @@ Shipping to Ozon pickup points for WooCommerce: point cache, weight-based rates,
 
 Adds Ozon pickup points as a shipping method in WooCommerce.
 
-The plugin caches pickup points in its own table, so search at checkout does not call the Ozon API. Rates are calculated by weight: Ozon returns an exact price only for a specific pickup point and recipient phone number, so the cart shows a weight-based estimate and the exact cost is recorded when the shipment is created.
+The plugin caches pickup points in its own table, so search at checkout does not call the Ozon API. The delivery price comes from Ozon: after the customer picks a pickup point and enters a phone number, the plugin calls `/v1/order/checkout` (price only, nothing is created) and uses that amount for the shipping rate. A weight-based table stays as a fallback for the moment before a point is chosen and for the case when the API does not answer.
 
 Features:
 
 * Pickup point cache with cursor pagination. Closed points are removed on refresh.
-* Weight-based shipping rates, configured as `up_to_kg:price` lines.
+* Delivery price from Ozon for the selected pickup point.
+* Fallback weight rates, configured as `up_to_kg:price` lines.
 * Point search at checkout by city, name or address. The selection survives the checkout AJAX refresh and is saved to the order, the admin screen and the emails.
 * Shipment creation from the order screen with an idempotency key: a second click does not create a second posting.
 * Status sync every 30 minutes through a WP-Cron event. Errors go to the order notes.
@@ -60,6 +61,10 @@ Label printing, cancellation and returns through the API.
 
 == Changelog ==
 
+= 0.2.0 =
+* The delivery price is requested from Ozon after the customer picks a pickup point and enters a phone number.
+* The weight table is now a fallback, not the main price.
+
 = 0.1.2 =
 * Pickup point cards use theme colors; the selected point is outlined.
 
@@ -72,5 +77,5 @@ Label printing, cancellation and returns through the API.
 
 == Upgrade Notice ==
 
-= 0.1.2 =
-Fixes unreadable pickup point cards on dark themes and a point block that disappeared after switching shipping methods.
+= 0.2.0 =
+Delivery price now comes from Ozon for the selected pickup point. The weight table is used only as a fallback.
