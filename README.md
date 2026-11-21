@@ -1,19 +1,27 @@
 # Ozon Delivery для WooCommerce
 
+[![Release](https://img.shields.io/github/v/release/asovetov/woo-ozon-delivery)](https://github.com/asovetov/woo-ozon-delivery/releases)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4%2B-21759b)
+![WooCommerce 8.0+](https://img.shields.io/badge/WooCommerce-8.0%2B-96588a)
+![PHP 8.1+](https://img.shields.io/badge/PHP-8.1%2B-777bb4)
+
 Доставка в пункты выдачи Ozon: кэш ПВЗ, тариф по весу в корзине, выбор пункта в оформлении,
 создание заявки из админки и синхронизация статусов через Ozon Delivery API.
 
 Написан для работающего магазина на WooCommerce: без подписок, без посредников, все данные
 остаются на своём сервере.
 
-**Статус:** 0.1.0. Весь путь заказа собран и проверен на локальном стенде: активация, кэш
+![Выбор пункта выдачи Ozon на оформлении заказа](docs/checkout-pvz.png)
+
+**Статус:** 0.1.2. Весь путь заказа собран и проверен на локальном стенде: активация, кэш
 пунктов, поиск и выбор ПВЗ в оформлении, создание заявки кнопкой в заказе, опрос статусов
-кроном. С боевыми ключами Ozon не проверялось — для этого нужен магазин с доступом к
+кроном. С боевыми ключами Ozon не проверялось: для этого нужен магазин с доступом к
 Delivery API. Не сделано: печать этикеток, отмена и возвраты через API.
 
 ## Что умеет
 
-- **Кэш пунктов выдачи.** Ozon отдаёт ПВЗ страницами по курсору — плагин складывает их в свою
+- **Кэш пунктов выдачи.** Ozon отдаёт ПВЗ страницами по курсору, плагин складывает их в свою
   таблицу и ищет по городу и адресу без запроса к API. Закрытые пункты при обновлении удаляются.
 - **Метод доставки с тарифом по весу.** Точную цену Ozon считает только по конкретному пункту
   и телефону получателя, поэтому в корзине работает тариф по весу, а точная стоимость приходит
@@ -30,12 +38,18 @@ Delivery API. Не сделано: печать этикеток, отмена �
 
 ## Установка
 
-1. Скопируйте папку `woo-ozon-delivery` в `wp-content/plugins/`.
-2. Активируйте плагин в разделе «Плагины».
-3. WooCommerce → Ozon Delivery: укажите Client ID и Client Secret из личного кабинета Ozon
+```bash
+cd wp-content/plugins
+git clone https://github.com/asovetov/woo-ozon-delivery.git
+```
+
+Дальше в админке:
+
+1. Активируйте плагин в разделе «Плагины».
+2. WooCommerce → Ozon Delivery: укажите Client ID и Client Secret из личного кабинета Ozon
    (Настройки → API).
-4. Нажмите «Обновить пункты выдачи» — плагин загрузит ПВЗ в кэш.
-5. WooCommerce → Настройки → Доставка: добавьте метод «Ozon» в нужную зону и задайте тарифы.
+3. Нажмите «Обновить пункты выдачи», плагин загрузит ПВЗ в кэш.
+4. WooCommerce → Настройки → Доставка: добавьте метод «Ozon» в нужную зону и задайте тарифы.
 
 ## Настройки
 
@@ -107,9 +121,9 @@ sync through the Ozon Delivery API.
 
 Self-hosted: no subscriptions, no third-party services, all data stays on your server.
 
-**Status:** 0.1.0. The full order flow is implemented and tested on a local stand: activation,
+**Status:** 0.1.2. The full order flow is implemented and tested on a local stand: activation,
 point cache, checkout selection, shipment creation, cron status polling. Not tested with live
-Ozon credentials — that requires a store with Delivery API access. Not implemented: label
+Ozon credentials: that requires a store with Delivery API access. Not implemented: label
 printing, cancellation and returns via API.
 
 ### Why the API client looks unusual

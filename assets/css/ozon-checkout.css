@@ -34,8 +34,9 @@
 	padding: 8px 12px;
 	border: 1px solid var(--c-border, #e2e8f0);
 	border-radius: var(--r-md, 6px);
-	background: #fff;
-	color: inherit;
+	/* Фон и цвет берём у темы: на тёмной теме белая карточка давала светлый текст на белом. */
+	background: var(--c-surface, #fff);
+	color: var(--c-text, #1a202c);
 	text-align: left;
 	cursor: pointer;
 	font: inherit;
@@ -43,7 +44,7 @@
 }
 
 .woo-ozon-pvz__item:hover {
-	border-color: var(--c-border-muted, #cbd5e1);
+	border-color: var(--c-accent, #cbd5e1);
 	background: var(--c-surface-2, #f1f5f9);
 }
 
