@@ -2,9 +2,9 @@
 /**
  * Метод доставки «Ozon».
  *
- * Цену считает Ozon: как только покупатель выбрал пункт выдачи и указал телефон, плагин
- * спрашивает стоимость у API. Тариф по весу остаётся запасным: он показывается, пока пункт
- * не выбран или если Ozon не ответил.
+ * Цену считает только Ozon. Пока покупатель не выбрал пункт выдачи и не указал телефон,
+ * стоимость неизвестна: способ доставки показывается без суммы с пометкой «уточним после
+ * выбора пункта». Своих тарифов у плагина нет.
  *
  * @package WooOzonDelivery
  */
@@ -27,7 +27,7 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 		$this->id                 = 'woo_ozon';
 		$this->instance_id        = absint( $instance_id );
 		$this->method_title       = __( 'Ozon', 'woo-ozon-delivery' );
-		$this->method_description = __( 'Доставка в пункты выдачи Ozon. Тариф по весу в корзине, точный расчёт — при создании заявки.', 'woo-ozon-delivery' );
+		$this->method_description = __( 'Доставка в пункты выдачи Ozon. Стоимость считает Ozon после выбора пункта выдачи.', 'woo-ozon-delivery' );
 		$this->supports           = array( 'shipping-zones', 'instance-settings', 'instance-settings-modal' );
 
 		$this->init();
@@ -54,25 +54,11 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 					'none'    => __( 'Не облагается', 'woo-ozon-delivery' ),
 				),
 			),
-			'base_cost'   => array(
-				'title'       => __( 'Базовая стоимость, ₽', 'woo-ozon-delivery' ),
-				'type'        => 'number',
-				'default'     => '350',
-				'description' => __( 'Применяется, если вес не попал ни в одну полосу.', 'woo-ozon-delivery' ),
-				'desc_tip'    => true,
-			),
-			'weight_bands' => array(
-				'title'       => __( 'Запасной тариф по весу', 'woo-ozon-delivery' ),
-				'type'        => 'textarea',
-				'default'     => "1:350\n3:450\n5:600\n10:900",
-				'description' => __( 'Нужен только пока пункт выдачи не выбран или если Ozon не ответил. Основную цену считает Ozon. По одной строке: «до_кг:цена».', 'woo-ozon-delivery' ),
-				'desc_tip'    => true,
-			),
 			'free_min'    => array(
 				'title'       => __( 'Бесплатно от суммы, ₽', 'woo-ozon-delivery' ),
 				'type'        => 'number',
 				'default'     => '0',
-				'description' => __( '0 — бесплатной доставки нет.', 'woo-ozon-delivery' ),
+				'description' => __( '0: бесплатной доставки нет.', 'woo-ozon-delivery' ),
 				'desc_tip'    => true,
 			),
 			'markup'      => array(
@@ -94,7 +80,7 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 	}
 
 	/**
-	 * Вес корзины в килограммах.
+	 * Вес корзины для отметки в способе доставки.
 	 *
 	 * @param array<string, mixed> $package Пакет доставки.
 	 */
@@ -103,13 +89,13 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 
 		foreach ( $package['contents'] as $item ) {
 			$product = $item['data'] ?? null;
+
 			if ( ! $product instanceof WC_Product ) {
 				continue;
 			}
 
 			$item_weight = (float) $product->get_weight();
 			if ( $item_weight <= 0 ) {
-				// Товар без веса считаем как 0.3 кг, иначе тариф уедет в минимум.
 				$item_weight = 0.3;
 			}
 
@@ -117,41 +103,6 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 		}
 
 		return $weight;
-	}
-
-	/**
-	 * Стоимость по полосам веса.
-	 *
-	 * @param float $weight_kg Вес в килограммах.
-	 */
-	private function band_cost( float $weight_kg ): float {
-		$raw   = (string) $this->get_option( 'weight_bands', '' );
-		$bands = array();
-
-		foreach ( preg_split( '/\r\n|\r|\n/', $raw ) as $line ) {
-			$line = trim( $line );
-			if ( '' === $line || false === strpos( $line, ':' ) ) {
-				continue;
-			}
-
-			list( $max, $price ) = array_map( 'trim', explode( ':', $line, 2 ) );
-			$max                 = (float) str_replace( ',', '.', $max );
-			$price               = (float) str_replace( ',', '.', $price );
-
-			if ( $max > 0 && $price >= 0 ) {
-				$bands[ $max ] = $price;
-			}
-		}
-
-		ksort( $bands );
-
-		foreach ( $bands as $max => $price ) {
-			if ( $weight_kg <= $max ) {
-				return $price;
-			}
-		}
-
-		return (float) $this->get_option( 'base_cost', 0 );
 	}
 
 	/**
@@ -163,33 +114,43 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 		$weight = $this->package_weight_kg( $package );
 		$quote  = class_exists( 'Woo_Ozon_Quote' ) ? Woo_Ozon_Quote::current() : null;
 
-		if ( null !== $quote ) {
-			$cost  = $quote;
-			$exact = true;
-		} else {
-			$cost  = $this->band_cost( $weight );
-			$exact = false;
+		if ( null === $quote ) {
+			// Цены ещё нет: пункт не выбран или Ozon не ответил.
+			$this->add_rate(
+				array(
+					'id'        => $this->get_rate_id(),
+					'label'     => sprintf(
+						/* translators: %s: название способа доставки */
+						__( '%s (стоимость уточним после выбора пункта)', 'woo-ozon-delivery' ),
+						$this->title
+					),
+					'cost'      => 0,
+					'package'   => $package,
+					'meta_data' => array(
+						__( 'Вес заказа', 'woo-ozon-delivery' ) => wc_format_weight( $weight ),
+					),
+				)
+			);
+
+			return;
 		}
 
-		$cost += (float) $this->get_option( 'markup', 0 );
+		$cost = $quote + (float) $this->get_option( 'markup', 0 );
 
 		$free_min = (float) $this->get_option( 'free_min', 0 );
-		if ( $free_min > 0 ) {
-			$subtotal = (float) ( $package['contents_cost'] ?? 0 );
-			if ( $subtotal >= $free_min ) {
-				$cost = 0.0;
-			}
+		if ( $free_min > 0 && (float) ( $package['contents_cost'] ?? 0 ) >= $free_min ) {
+			$cost = 0.0;
 		}
 
 		$this->add_rate(
 			array(
-				'id'      => $this->get_rate_id(),
-				'label'   => $this->title,
-				'cost'    => max( 0, $cost ),
-				'package' => $package,
-				'meta_data' => $exact
-					? array( __( 'Расчёт Ozon', 'woo-ozon-delivery' ) => wc_format_weight( $weight ) )
-					: array( __( 'Предварительно, по весу', 'woo-ozon-delivery' ) => wc_format_weight( $weight ) ),
+				'id'        => $this->get_rate_id(),
+				'label'     => $this->title,
+				'cost'      => max( 0, $cost ),
+				'package'   => $package,
+				'meta_data' => array(
+					__( 'Расчёт Ozon', 'woo-ozon-delivery' ) => wc_format_weight( $weight ),
+				),
 			)
 		);
 	}
