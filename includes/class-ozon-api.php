@@ -267,6 +267,14 @@ class Woo_Ozon_Api {
 	 */
 	private static function resolve_url( string $base, string $location ): string {
 		if ( preg_match( '#^https?://#i', $location ) ) {
+			// В запросе едет Bearer-токен: на чужой хост по редиректу не идём.
+			$base_host = wp_parse_url( $base, PHP_URL_HOST );
+			$next_host = wp_parse_url( $location, PHP_URL_HOST );
+
+			if ( $base_host && $next_host && strcasecmp( (string) $base_host, (string) $next_host ) !== 0 ) {
+				throw new Woo_Ozon_Error( 'Ozon: редирект на посторонний хост отклонён' );
+			}
+
 			return $location;
 		}
 

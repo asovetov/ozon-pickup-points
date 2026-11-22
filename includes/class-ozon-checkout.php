@@ -205,6 +205,18 @@ class Woo_Ozon_Checkout {
 			return;
 		}
 
+		$quoted       = WC()->session ? WC()->session->get( Woo_Ozon_Quote::SESSION_KEY ) : null;
+		$quoted_point = is_array( $quoted ) ? (string) ( $quoted['point'] ?? '' ) : '';
+
+		if ( $quoted_point !== (string) $point_id ) {
+			wc_add_notice(
+				__( 'Стоимость доставки не совпадает с выбранным пунктом. Обновите страницу и выберите пункт заново.', 'woo-ozon-delivery' ),
+				'error'
+			);
+
+			return;
+		}
+
 		if ( null === Woo_Ozon_Points::get( $point_id ) ) {
 			wc_add_notice( __( 'Этот пункт выдачи больше недоступен, выберите другой.', 'woo-ozon-delivery' ), 'error' );
 		}

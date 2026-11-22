@@ -53,6 +53,14 @@ class Woo_Ozon_Quote {
 			return null;
 		}
 
+		// Цена посчитана для конкретного пункта. Если выбран другой, расчёт не годится:
+		// иначе можно получить цену дешёвого ПВЗ и оформить заказ на дорогой.
+		$chosen_point = (string) ( WC()->session->get( 'woo_ozon_point_id' ) ?? '' );
+
+		if ( '' === $chosen_point || (string) ( $stored['point'] ?? '' ) !== $chosen_point ) {
+			return null;
+		}
+
 		// Сумма корзины изменилась — расчёт устарел.
 		if ( abs( (float) $stored['total'] - (float) WC()->cart->get_subtotal() ) > 0.01 ) {
 			return null;
@@ -70,6 +78,17 @@ class Woo_Ozon_Quote {
 	 */
 	public static function handle(): void {
 		check_ajax_referer( 'woo_ozon_quote', 'nonce' );
+
+		// Точка публичная: считаем вызовы с адреса, иначе аноним выжигает квоту Ozon
+		// и держит воркеры PHP долгими запросами.
+		$limit_key = 'woo_ozon_q_' . md5( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+		$hits      = (int) get_transient( $limit_key );
+
+		if ( $hits >= 30 ) {
+			wp_send_json_error( array( 'message' => __( 'Слишком много запросов расчёта. Подождите пару минут.', 'woo-ozon-delivery' ) ) );
+		}
+
+		set_transient( $limit_key, $hits + 1, 10 * MINUTE_IN_SECONDS );
 
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
 			wp_send_json_error( array( 'message' => __( 'Корзина недоступна.', 'woo-ozon-delivery' ) ) );
