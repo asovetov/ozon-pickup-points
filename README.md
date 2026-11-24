@@ -1,6 +1,6 @@
 # Delivery to Ozon Pickup Points for WooCommerce
 
-[![Release](https://img.shields.io/github/v/release/asovetov/woo-ozon-delivery)](https://github.com/asovetov/woo-ozon-delivery/releases)
+[![Release](https://img.shields.io/github/v/release/asovetov/ozon-pickup-points)](https://github.com/asovetov/ozon-pickup-points/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 ![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4%2B-21759b)
 ![WooCommerce 8.0+](https://img.shields.io/badge/WooCommerce-8.0%2B-96588a)
@@ -45,7 +45,7 @@ Delivery API. Не сделано: печать этикеток, отмена �
 
 ```bash
 cd wp-content/plugins
-git clone https://github.com/asovetov/woo-ozon-delivery.git
+git clone https://github.com/asovetov/ozon-pickup-points.git
 ```
 
 Дальше в админке:

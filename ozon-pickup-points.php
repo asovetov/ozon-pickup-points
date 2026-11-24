@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Delivery to Ozon Pickup Points for WooCommerce
- * Plugin URI:        https://github.com/asovetov/woo-ozon-delivery
+ * Plugin URI:        https://github.com/asovetov/ozon-pickup-points
  * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправления юридическим лицам.
  * Version:           0.4.1
  * Requires at least: 6.4
