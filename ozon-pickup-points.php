@@ -3,7 +3,7 @@
  * Plugin Name:       Delivery to Ozon Pickup Points for WooCommerce
  * Plugin URI:        https://github.com/asovetov/ozon-pickup-points
  * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправки от юридических лиц.
- * Version:           0.4.5
+ * Version:           0.4.6
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            3D-Club
@@ -22,7 +22,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WOO_OZON_VERSION', '0.4.5' );
+define( 'WOO_OZON_VERSION', '0.4.6' );
 define( 'WOO_OZON_FILE', __FILE__ );
 define( 'WOO_OZON_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WOO_OZON_URL', plugin_dir_url( __FILE__ ) );
@@ -32,7 +32,6 @@ require_once WOO_OZON_DIR . 'includes/class-ozon-points.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-quote.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-checkout.php';
 require_once WOO_OZON_DIR . 'includes/class-ozon-order.php';
-require_once WOO_OZON_DIR . 'includes/class-ozon-geo-admin.php';
 
 /**
  * Поднимаем части плагина после загрузки WooCommerce.
@@ -46,7 +45,6 @@ add_action(
 
 		Woo_Ozon_Quote::init();
 		Woo_Ozon_Checkout::init();
-		Woo_Ozon_Geo_Admin::init();
 		Woo_Ozon_Order::init();
 	}
 );
@@ -163,9 +161,16 @@ function woo_ozon_render_settings_page(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- выбор закладки, данных не меняет.
 	$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'settings';
 
-	$tabs = array(
-		'settings' => __( 'Настройки', 'ozon-pickup-points' ),
-		'coords'   => __( 'Координаты', 'ozon-pickup-points' ),
+	/**
+	 * Закладки страницы настроек. Плагины сайта могут добавить свои.
+	 *
+	 * @param array<string, string> $tabs Ключ => подпись.
+	 */
+	$tabs = apply_filters(
+		'woo_ozon_settings_tabs',
+		array(
+			'settings' => __( 'Настройки', 'ozon-pickup-points' ),
+		)
 	);
 
 	echo '<div class="wrap"><h1>' . esc_html__( 'Ozon: пункты выдачи', 'ozon-pickup-points' ) . '</h1>';
@@ -182,8 +187,13 @@ function woo_ozon_render_settings_page(): void {
 
 	echo '</nav>';
 
-	if ( 'coords' === $tab ) {
-		Woo_Ozon_Geo_Admin::render();
+	if ( 'settings' !== $tab ) {
+		/**
+		 * Вывод содержимого дополнительной закладки.
+		 *
+		 * @param string $tab Ключ закладки.
+		 */
+		do_action( 'woo_ozon_settings_tab', $tab );
 		echo '</div>';
 
 		return;

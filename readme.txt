@@ -4,7 +4,7 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.5
+Stable tag: 0.4.6
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -81,10 +81,10 @@ Both services are optional in the sense that the plugin works without the map ke
 
 == Changelog ==
 
-= 0.4.5 =
-* Добавлена закладка «Координаты»: прогрев координат пунктов пачками и выгрузка поправок в CSV.
-* Координаты пунктов уточняются геокодером Яндекс.Карт в браузере и сохраняются в базу.
-* Поле для ключа карты в настройках плагина.
+= 0.4.6 =
+* Закладки страницы настроек вынесены в фильтр `woo_ozon_settings_tabs`, содержимое — в действие `woo_ozon_settings_tab`.
+* Точки для карты можно поправить фильтром `woo_ozon_map_points`.
+* После отрисовки карты вызывается событие `woo-ozon:map-drawn` с точками и функцией перерисовки.
 
 = 0.4.3 =
 * Requests go to api-delivery.ozon.ru; the old xapi.ozon.ru host answered 402.
