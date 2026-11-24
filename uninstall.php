@@ -16,17 +16,17 @@ delete_option( 'woo_ozon_schema_version' );
 delete_transient( 'woo_ozon_access_token' );
 
 // Снимаем крон, если он ещё висит.
-$timestamp = wp_next_scheduled( 'woo_ozon_sync_statuses' );
-while ( $timestamp ) {
-	wp_unschedule_event( $timestamp, 'woo_ozon_sync_statuses' );
-	$timestamp = wp_next_scheduled( 'woo_ozon_sync_statuses' );
+$woo_ozon_timestamp = wp_next_scheduled( 'woo_ozon_sync_statuses' );
+while ( $woo_ozon_timestamp ) {
+	wp_unschedule_event( $woo_ozon_timestamp, 'woo_ozon_sync_statuses' );
+	$woo_ozon_timestamp = wp_next_scheduled( 'woo_ozon_sync_statuses' );
 }
 
-// Своя таблица кэша пунктов.
-$table = $wpdb->prefix . 'woo_ozon_points';
+// Своя таблица кэша пунктов: имя собирается из $wpdb->prefix.
+$woo_ozon_table = $wpdb->prefix . 'woo_ozon_points';
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- удаление своей таблицы при деинсталляции.
+$wpdb->query( "DROP TABLE IF EXISTS {$woo_ozon_table}" );
 
 // Заметки об ошибках в карточках заказов.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

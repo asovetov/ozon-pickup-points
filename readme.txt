@@ -9,7 +9,7 @@ License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Shipping to Ozon pickup points for WooCommerce, built for B2B shipments to legal entities: point cache, rates from Ozon, point selection at checkout, shipment creation and status sync.
+Ozon pickup points for WooCommerce: cached points, price from Ozon, checkout selection, shipments and statuses. Built for B2B.
 
 == Description ==
 

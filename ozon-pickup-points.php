@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name:       Ozon Delivery for WooCommerce
+ * Plugin Name:       Delivery to Ozon Pickup Points for WooCommerce
  * Plugin URI:        https://github.com/asovetov/woo-ozon-delivery
- * Description:       Доставка Ozon для WooCommerce: пункты выдачи, расчёт стоимости и создание заявки через Ozon Delivery API.
+ * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправления юридическим лицам.
  * Version:           0.4.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
@@ -10,8 +10,7 @@
  * Author URI:        https://3d-club.ru
  * License:           GPL-3.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain:       woo-ozon-delivery
- * Domain Path:       /languages
+ * Text Domain:       ozon-pickup-points
  * WC requires at least: 8.0
  * WC tested up to:   11.3
  * Requires Plugins:  woocommerce
@@ -63,16 +62,6 @@ add_action(
 );
 
 /**
- * Загружаем переводы.
- */
-add_action(
-	'init',
-	static function (): void {
-		load_plugin_textdomain( 'woo-ozon-delivery', false, dirname( plugin_basename( WOO_OZON_FILE ) ) . '/languages' );
-	}
-);
-
-/**
  * Регистрируем метод доставки в WooCommerce.
  *
  * @param array<string, string> $methods Список методов.
@@ -95,10 +84,10 @@ add_action(
 	static function (): void {
 		add_submenu_page(
 			'woocommerce',
-			__( 'Ozon Delivery', 'woo-ozon-delivery' ),
-			__( 'Ozon Delivery', 'woo-ozon-delivery' ),
+			__( 'Ozon Delivery', 'ozon-pickup-points' ),
+			__( 'Ozon Delivery', 'ozon-pickup-points' ),
 			'manage_woocommerce',
-			'woo-ozon-delivery',
+			'ozon-pickup-points',
 			'woo_ozon_render_settings_page'
 		);
 	}
@@ -141,6 +130,7 @@ add_action(
 		$saved   = array();
 
 		foreach ( $keys as $key ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- санитизация ниже: ссылки через esc_url_raw, остальное через sanitize_text_field.
 			$raw = isset( $_POST[ $key ] ) ? wp_unslash( (string) $_POST[ $key ] ) : '';
 
 			if ( in_array( $key, $numeric, true ) ) {
@@ -167,62 +157,63 @@ add_action(
  */
 function woo_ozon_render_settings_page(): void {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
-		wp_die( esc_html__( 'Недостаточно прав.', 'woo-ozon-delivery' ) );
+		wp_die( esc_html__( 'Недостаточно прав.', 'ozon-pickup-points' ) );
 	}
 
 	$fields = array(
-		'client_id'         => __( 'Client ID', 'woo-ozon-delivery' ),
-		'client_secret'     => __( 'Client Secret', 'woo-ozon-delivery' ),
-		'token_url'         => __( 'URL токена', 'woo-ozon-delivery' ),
-		'api_url'           => __( 'URL API', 'woo-ozon-delivery' ),
-		'scope'             => __( 'Scope', 'woo-ozon-delivery' ),
-		'default_weight_g'  => __( 'Вес по умолчанию, г', 'woo-ozon-delivery' ),
-		'default_length_mm' => __( 'Длина по умолчанию, мм', 'woo-ozon-delivery' ),
-		'default_width_mm'  => __( 'Ширина по умолчанию, мм', 'woo-ozon-delivery' ),
-		'default_height_mm' => __( 'Высота по умолчанию, мм', 'woo-ozon-delivery' ),
-		'markup_percent'    => __( 'Наценка на доставку, %', 'woo-ozon-delivery' ),
+		'client_id'         => __( 'Client ID', 'ozon-pickup-points' ),
+		'client_secret'     => __( 'Client Secret', 'ozon-pickup-points' ),
+		'token_url'         => __( 'URL токена', 'ozon-pickup-points' ),
+		'api_url'           => __( 'URL API', 'ozon-pickup-points' ),
+		'scope'             => __( 'Scope', 'ozon-pickup-points' ),
+		'default_weight_g'  => __( 'Вес по умолчанию, г', 'ozon-pickup-points' ),
+		'default_length_mm' => __( 'Длина по умолчанию, мм', 'ozon-pickup-points' ),
+		'default_width_mm'  => __( 'Ширина по умолчанию, мм', 'ozon-pickup-points' ),
+		'default_height_mm' => __( 'Высота по умолчанию, мм', 'ozon-pickup-points' ),
+		'markup_percent'    => __( 'Наценка на доставку, %', 'ozon-pickup-points' ),
 	);
 
 	$nonce_action = 'woo_ozon_save_settings';
 
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- только флаг для показа уведомления, данных не меняет.
 	if ( isset( $_GET['woo-ozon-saved'] ) ) {
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Настройки сохранены.', 'woo-ozon-delivery' ) . '</p></div>';
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Настройки сохранены.', 'ozon-pickup-points' ) . '</p></div>';
 	}
 
 	$options = Woo_Ozon_Api::settings();
 	?>
 	<div class="wrap">
-		<h1><?php echo esc_html__( 'Ozon Delivery', 'woo-ozon-delivery' ); ?></h1>
+		<h1><?php echo esc_html__( 'Ozon Delivery', 'ozon-pickup-points' ); ?></h1>
 		<p>
 			<?php
 			echo esc_html__(
 				'Ключи выдаёт Ozon в личном кабинете продавца: Настройки → API ключи. Без ключей расчёт и создание заявок не работают, но пункты выдачи можно держать в кэше.',
-				'woo-ozon-delivery'
+				'ozon-pickup-points'
 			);
 			?>
 		</p>
-		<p><?php esc_html_e( 'Куда идти за ключами и настройками доставки:', 'woo-ozon-delivery' ); ?></p>
+		<p><?php esc_html_e( 'Куда идти за ключами и настройками доставки:', 'ozon-pickup-points' ); ?></p>
 		<ul class="ul-disc">
 			<li>
 				<a href="https://seller.ozon.ru/app/settings/api-keys" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Кабинет продавца → API ключи', 'woo-ozon-delivery' ); ?>
+					<?php esc_html_e( 'Кабинет продавца → API ключи', 'ozon-pickup-points' ); ?>
 				</a>
 				— Client ID и Client Secret, вкладка Seller API
 			</li>
 			<li>
 				<a href="https://seller.ozon.ru/" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Кабинет продавца', 'woo-ozon-delivery' ); ?>
+					<?php esc_html_e( 'Кабинет продавца', 'ozon-pickup-points' ); ?>
 				</a>
 				— раздел FBS → Управление логистикой: склады и методы доставки
 			</li>
 			<li>
 				<a href="https://seller-edu.ozon.ru/libra/rfbs/logistics-settings" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Справка Ozon: склады и методы доставки', 'woo-ozon-delivery' ); ?>
+					<?php esc_html_e( 'Справка Ozon: склады и методы доставки', 'ozon-pickup-points' ); ?>
 				</a>
 			</li>
 			<li>
 				<a href="https://docs.ozon.ru/api/seller/" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Документация Seller API', 'woo-ozon-delivery' ); ?>
+					<?php esc_html_e( 'Документация Seller API', 'ozon-pickup-points' ); ?>
 				</a>
 			</li>
 		</ul>
@@ -245,15 +236,15 @@ function woo_ozon_render_settings_page(): void {
 					</tr>
 				<?php endforeach; ?>
 			</table>
-			<?php submit_button( __( 'Сохранить', 'woo-ozon-delivery' ) ); ?>
+			<?php submit_button( __( 'Сохранить', 'ozon-pickup-points' ) ); ?>
 		</form>
 
-		<h2><?php echo esc_html__( 'Пункты выдачи', 'woo-ozon-delivery' ); ?></h2>
+		<h2><?php echo esc_html__( 'Пункты выдачи', 'ozon-pickup-points' ); ?></h2>
 		<p>
 			<?php
 			printf(
 				/* translators: %d — количество пунктов в кэше */
-				esc_html__( 'В кэше: %d пунктов.', 'woo-ozon-delivery' ),
+				esc_html__( 'В кэше: %d пунктов.', 'ozon-pickup-points' ),
 				(int) Woo_Ozon_Points::count()
 			);
 			?>
@@ -261,7 +252,7 @@ function woo_ozon_render_settings_page(): void {
 		<form method="post">
 			<?php wp_nonce_field( 'woo_ozon_refresh_points', 'woo_ozon_points_nonce' ); ?>
 			<input type="hidden" name="woo_ozon_refresh_points" value="1">
-			<?php submit_button( __( 'Обновить пункты выдачи', 'woo-ozon-delivery' ), 'secondary' ); ?>
+			<?php submit_button( __( 'Обновить пункты выдачи', 'ozon-pickup-points' ), 'secondary' ); ?>
 		</form>
 	</div>
 	<?php
@@ -311,7 +302,7 @@ add_action(
 function woo_ozon_cron_schedules( array $schedules ): array {
 	$schedules['woo_ozon_half_hour'] = array(
 		'interval' => 1800,
-		'display'  => __( 'Каждые 30 минут', 'woo-ozon-delivery' ),
+		'display'  => __( 'Каждые 30 минут', 'ozon-pickup-points' ),
 	);
 
 	return $schedules;
@@ -368,6 +359,7 @@ add_action(
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- только чтение id заказа для кнопки, действие защищено своим nonce.
 		$order_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 		if ( $order_id <= 0 ) {
 			return;

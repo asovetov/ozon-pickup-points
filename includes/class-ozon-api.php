@@ -11,6 +11,10 @@
 
 declare( strict_types=1 );
 
+// Тексты исключений попадают в лог и в заметки заказа, в HTML не выводятся,
+// поэтому экранирование вывода к ним не применимо.
+// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped
+
 defined( 'ABSPATH' ) || exit;
 
 /**

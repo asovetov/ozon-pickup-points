@@ -67,14 +67,16 @@ class Woo_Ozon_Checkout {
 				'nonce'      => wp_create_nonce( 'woo_ozon_points' ),
 				'quoteNonce' => wp_create_nonce( 'woo_ozon_quote' ),
 				'i18n'    => array(
-					'empty'   => __( 'Введите город или адрес пункта', 'woo-ozon-delivery' ),
-					'loading' => __( 'Ищем пункты…', 'woo-ozon-delivery' ),
-					'none'    => __( 'Пунктов не нашлось. Попробуйте другой город.', 'woo-ozon-delivery' ),
-					'error'   => __( 'Не удалось получить список пунктов.', 'woo-ozon-delivery' ),
-					'quoting' => __( 'Считаем доставку…', 'woo-ozon-delivery' ),
-					'quote'   => __( 'Доставка Ozon: %s', 'woo-ozon-delivery' ),
-					'quoteFail' => __( 'Ozon не рассчитал доставку: %s', 'woo-ozon-delivery' ),
-					'needPhone' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'woo-ozon-delivery' ),
+					'empty'   => __( 'Введите город или адрес пункта', 'ozon-pickup-points' ),
+					'loading' => __( 'Ищем пункты…', 'ozon-pickup-points' ),
+					'none'    => __( 'Пунктов не нашлось. Попробуйте другой город.', 'ozon-pickup-points' ),
+					'error'   => __( 'Не удалось получить список пунктов.', 'ozon-pickup-points' ),
+					'quoting' => __( 'Считаем доставку…', 'ozon-pickup-points' ),
+					/* translators: %s: сумма доставки. */
+					'quote'   => __( 'Доставка Ozon: %s', 'ozon-pickup-points' ),
+					/* translators: %s: текст ошибки от Ozon. */
+					'quoteFail' => __( 'Ozon не рассчитал доставку: %s', 'ozon-pickup-points' ),
+					'needPhone' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'ozon-pickup-points' ),
 				),
 			)
 		);
@@ -117,11 +119,11 @@ class Woo_Ozon_Checkout {
 		$city     = WC()->customer ? (string) WC()->customer->get_billing_city() : '';
 		?>
 		<div class="woo-ozon-pvz" id="woo-ozon-pvz"<?php echo self::ozon_selected() ? '' : ' hidden'; ?>>
-			<h3><?php echo esc_html__( 'Пункт выдачи Ozon', 'woo-ozon-delivery' ); ?></h3>
+			<h3><?php echo esc_html__( 'Пункт выдачи Ozon', 'ozon-pickup-points' ); ?></h3>
 
 			<p class="form-row form-row-wide">
-				<label for="woo-ozon-query"><?php echo esc_html__( 'Город или адрес', 'woo-ozon-delivery' ); ?></label>
-				<input type="search" id="woo-ozon-query" class="input-text" value="<?php echo esc_attr( $city ); ?>" placeholder="<?php echo esc_attr__( 'Например, Санкт-Петербург', 'woo-ozon-delivery' ); ?>" autocomplete="off">
+				<label for="woo-ozon-query"><?php echo esc_html__( 'Город или адрес', 'ozon-pickup-points' ); ?></label>
+				<input type="search" id="woo-ozon-query" class="input-text" value="<?php echo esc_attr( $city ); ?>" placeholder="<?php echo esc_attr__( 'Например, Санкт-Петербург', 'ozon-pickup-points' ); ?>" autocomplete="off">
 			</p>
 
 			<div class="woo-ozon-pvz__list" id="woo-ozon-list" role="listbox" aria-live="polite"></div>
@@ -185,6 +187,7 @@ class Woo_Ozon_Checkout {
 	 * Проверка перед созданием заказа.
 	 */
 	public static function validate(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce оформления заказа проверяет WooCommerce до вызова этого метода.
 		$chosen = isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) ) : array();
 
 		$is_ozon = false;
@@ -198,10 +201,11 @@ class Woo_Ozon_Checkout {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce оформления заказа проверяет WooCommerce до вызова этого метода.
 		$point_id = isset( $_POST['woo_ozon_point_id'] ) ? absint( wp_unslash( $_POST['woo_ozon_point_id'] ) ) : 0;
 
 		if ( $point_id <= 0 ) {
-			wc_add_notice( __( 'Выберите пункт выдачи Ozon.', 'woo-ozon-delivery' ), 'error' );
+			wc_add_notice( __( 'Выберите пункт выдачи Ozon.', 'ozon-pickup-points' ), 'error' );
 			return;
 		}
 
@@ -210,7 +214,7 @@ class Woo_Ozon_Checkout {
 
 		if ( $quoted_point !== (string) $point_id ) {
 			wc_add_notice(
-				__( 'Стоимость доставки не совпадает с выбранным пунктом. Обновите страницу и выберите пункт заново.', 'woo-ozon-delivery' ),
+				__( 'Стоимость доставки не совпадает с выбранным пунктом. Обновите страницу и выберите пункт заново.', 'ozon-pickup-points' ),
 				'error'
 			);
 
@@ -218,7 +222,7 @@ class Woo_Ozon_Checkout {
 		}
 
 		if ( null === Woo_Ozon_Points::get( $point_id ) ) {
-			wc_add_notice( __( 'Этот пункт выдачи больше недоступен, выберите другой.', 'woo-ozon-delivery' ), 'error' );
+			wc_add_notice( __( 'Этот пункт выдачи больше недоступен, выберите другой.', 'ozon-pickup-points' ), 'error' );
 		}
 	}
 
@@ -229,6 +233,7 @@ class Woo_Ozon_Checkout {
 	 * @param array<string, mixed> $data Данные оформления.
 	 */
 	public static function save_to_order( WC_Order $order, array $data ): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce оформления заказа проверяет WooCommerce до вызова этого метода.
 		$point_id = isset( $_POST['woo_ozon_point_id'] ) ? absint( wp_unslash( $_POST['woo_ozon_point_id'] ) ) : 0;
 
 		if ( $point_id <= 0 ) {
@@ -264,7 +269,7 @@ class Woo_Ozon_Checkout {
 
 		printf(
 			'<p><strong>%s</strong><br>%s</p>',
-			esc_html__( 'Пункт выдачи Ozon', 'woo-ozon-delivery' ),
+			esc_html__( 'Пункт выдачи Ozon', 'ozon-pickup-points' ),
 			esc_html( $label )
 		);
 	}
@@ -282,7 +287,7 @@ class Woo_Ozon_Checkout {
 
 		if ( '' !== $label ) {
 			$fields['woo_ozon_point'] = array(
-				'label' => __( 'Пункт выдачи Ozon', 'woo-ozon-delivery' ),
+				'label' => __( 'Пункт выдачи Ozon', 'ozon-pickup-points' ),
 				'value' => $label,
 			);
 		}

@@ -1,4 +1,4 @@
-# Ozon Delivery для WooCommerce
+# Delivery to Ozon Pickup Points for WooCommerce
 
 [![Release](https://img.shields.io/github/v/release/asovetov/woo-ozon-delivery)](https://github.com/asovetov/woo-ozon-delivery/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)

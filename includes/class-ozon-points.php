@@ -63,9 +63,10 @@ class Woo_Ozon_Points {
 	public static function count(): int {
 		global $wpdb;
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы собирается из $wpdb->prefix.
 		$table = self::table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 	}
 
@@ -171,10 +172,13 @@ class Woo_Ozon_Points {
 
 		// Пункты, которых Ozon больше не отдаёт, закрыты: убираем их из кэша,
 		// иначе покупатель выберет пункт, куда доставка уже не работает.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$removed = (int) $wpdb->query(
-			$wpdb->prepare( "DELETE FROM " . self::table() . ' WHERE updated_at < %s', $now )
-		);
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы собирается из $wpdb->prefix.
+		$table = self::table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$sql = $wpdb->prepare( "DELETE FROM {$table} WHERE updated_at < %s", $now );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$removed = (int) $wpdb->query( $sql );
 
 		return array(
 			'ok'      => true,
@@ -235,9 +239,10 @@ class Woo_Ozon_Points {
 
 		$params[] = $limit;
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы из $wpdb->prefix, остальное через prepare().
 		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY city, address LIMIT %d';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql собран выше и прогнан через prepare().
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 
 		return is_array( $rows ) ? $rows : array();
@@ -252,9 +257,10 @@ class Woo_Ozon_Points {
 	public static function get( int $point_id ): ?array {
 		global $wpdb;
 
+// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы собирается из $wpdb->prefix.
 		$table = self::table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE point_id = %d", $point_id ), ARRAY_A );
 
 		return is_array( $row ) ? $row : null;
@@ -268,9 +274,10 @@ class Woo_Ozon_Points {
 	public static function cities( int $limit = 50 ): array {
 		global $wpdb;
 
+// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы собирается из $wpdb->prefix.
 		$table = self::table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$rows = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT city FROM {$table} WHERE city <> '' ORDER BY city LIMIT %d", $limit ) );
 
 		return is_array( $rows ) ? array_map( 'strval', $rows ) : array();
