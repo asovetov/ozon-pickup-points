@@ -11,11 +11,15 @@
 		return document.getElementById(id);
 	}
 
-	function setStatus(text) {
+	function setStatus(text, isError) {
 		var box = field('woo-ozon-quote-status');
-		if (box) {
-			box.textContent = text || '';
+
+		if (!box) {
+			return;
 		}
+
+		box.textContent = text || '';
+		box.classList.toggle('woo-ozon-quote--error', !!isError);
 	}
 
 	/* Ozon считает доставку для конкретного пункта и телефона. Спрашиваем цену сразу
@@ -50,11 +54,14 @@
 					return;
 				}
 
-				var reason = (json && json.data && json.data.message) || WooOzon.i18n.error;
-				setStatus(WooOzon.i18n.quoteFail.replace('%s', reason));
+				var data = (json && json.data) || {};
+				var reason = data.message || WooOzon.i18n.error;
+
+				// Отказ по телефону Ozon объясняет своими словами — префикс тут только мешает.
+				setStatus('phone' === data.code ? reason : WooOzon.i18n.quoteFail.replace('%s', reason), true);
 			})
 			.catch(function () {
-				setStatus(WooOzon.i18n.quoteFail.replace('%s', WooOzon.i18n.error));
+				setStatus(WooOzon.i18n.quoteFail.replace('%s', WooOzon.i18n.error), true);
 			});
 	}
 

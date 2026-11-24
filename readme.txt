@@ -4,7 +4,7 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.6
+Stable tag: 0.4.7
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -80,6 +80,10 @@ This plugin talks to two third-party services.
 Both services are optional in the sense that the plugin works without the map key: without it the customer picks a point from the list.
 
 == Changelog ==
+
+= 0.4.7 =
+* Отказ Ozon по номеру телефона объясняется понятным текстом и выделяется в оформлении: номер не зарегистрирован в Ozon или заблокирован.
+* Сообщение об отказе больше не упоминает конкретную службу доставки.
 
 = 0.4.6 =
 * Закладки страницы настроек вынесены в фильтр `woo_ozon_settings_tabs`, содержимое — в действие `woo_ozon_settings_tab`.

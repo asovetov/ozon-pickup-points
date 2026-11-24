@@ -149,17 +149,13 @@ class Woo_Ozon_Quote {
 		$cost = self::extract_price( $response );
 
 		if ( null === $cost ) {
-			$reason = $response['results'][0]['error']['message'] ?? '';
+			$reason = (string) ( $response['results'][0]['error']['message'] ?? '' );
+			$kind   = self::reason_kind( $reason );
 
 			wp_send_json_error(
 				array(
-					'message'  => '' !== $reason
-						? sprintf(
-							/* translators: %s: причина отказа от Ozon */
-							__( 'Ozon не доставит этот заказ в выбранный пункт: %s', 'ozon-pickup-points' ),
-							$reason
-						)
-						: __( 'Ozon не вернул стоимость доставки.', 'ozon-pickup-points' ),
+					'message'  => self::reason_text( $reason ),
+					'code'     => $kind,
 					'response' => $response,
 				)
 			);
@@ -306,5 +302,41 @@ class Woo_Ozon_Quote {
 		}
 
 		return $node;
+	}
+
+	/**
+	 * Что за отказ: телефон или общая причина.
+	 *
+	 * @param string $reason Текст ошибки от Ozon.
+	 */
+	private static function reason_kind( string $reason ): string {
+		$reason = mb_strtolower( $reason );
+
+		if ( false !== mb_strpos( $reason, 'невозможно доставить заказ' ) || false !== mb_strpos( $reason, 'phone' ) ) {
+			return 'phone';
+		}
+
+		return 'other';
+	}
+
+	/**
+	 * Понятный покупателю текст отказа.
+	 *
+	 * @param string $reason Текст ошибки от Ozon.
+	 */
+	private static function reason_text( string $reason ): string {
+		if ( 'phone' === self::reason_kind( $reason ) ) {
+			return __( 'На этот номер телефона Ozon не доставляет: номер не зарегистрирован в Ozon или заблокирован. Укажите другой номер или выберите доставку другим способом.', 'ozon-pickup-points' );
+		}
+
+		if ( '' === trim( $reason ) ) {
+			return __( 'Ozon не вернул стоимость доставки. Попробуйте другой пункт или выберите другой способ доставки.', 'ozon-pickup-points' );
+		}
+
+		return sprintf(
+			/* translators: %s: причина отказа от Ozon */
+			__( 'Ozon не доставит этот заказ в выбранный пункт: %s', 'ozon-pickup-points' ),
+			$reason
+		);
 	}
 }

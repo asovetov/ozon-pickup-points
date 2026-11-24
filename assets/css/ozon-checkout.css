@@ -131,3 +131,16 @@
 .woo-ozon-pvz { margin: 6px 0 2px 24px; }
 .woo-ozon-pvz__chosen { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }
 .woo-ozon-quote { margin: 4px 0 0; font-size: 12px; line-height: 1.4; opacity: .85; }
+
+/* Отказ Ozon по номеру телефона: покупателю надо сразу увидеть, в чём дело. */
+.woo-ozon-quote--error {
+	display: block;
+	margin: 8px 0;
+	padding: 10px 12px;
+	border-left: 4px solid #c0392b;
+	background: #fdecea;
+	color: #8b1d13;
+	font-weight: 600;
+	line-height: 1.45;
+	border-radius: 3px;
+}
