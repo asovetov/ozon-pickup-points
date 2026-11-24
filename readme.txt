@@ -1,4 +1,4 @@
-=== Ozon Delivery for WooCommerce ===
+=== Delivery to Ozon Pickup Points for WooCommerce ===
 Contributors: asovetov
 Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
