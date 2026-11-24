@@ -208,6 +208,7 @@ class Woo_Ozon_Geo_Admin {
 			if (!runBtn) { return; }
 
 			var done = 0;
+			var skipped = {};
 			var limit = <?php echo (int) self::BATCH; ?>;
 			var ajax = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
 			var nonce = <?php echo wp_json_encode( wp_create_nonce( 'woo_ozon_geo' ) ); ?>;
@@ -252,7 +253,14 @@ class Woo_Ozon_Geo_Admin {
 				return get(ajax + '?action=woo_ozon_geo_cities&nonce=' + encodeURIComponent(nonce))
 					.then(function (json) {
 						var cities = (json && json.data && json.data.cities) || [];
-						return cities.length ? cities[0].city : '';
+
+						for (var i = 0; i < cities.length; i++) {
+							if (!skipped[cities[i].city]) {
+								return cities[i].city;
+							}
+						}
+
+						return '';
 					});
 			}
 
@@ -277,9 +285,8 @@ class Woo_Ozon_Geo_Admin {
 
 					points(name).then(function (list) {
 						if (!list.length) {
-							// Город без пунктов в выборке: пропускаем, чтобы не зациклиться.
-							say('Город ' + name + ': пунктов нет, дальше.');
-							done += 1;
+							skipped[name] = true;
+							say('Город ' + name + ': пунктов в выборке нет, дальше.');
 							step();
 							return;
 						}
@@ -297,6 +304,11 @@ class Woo_Ozon_Geo_Admin {
 									});
 									return;
 								}
+
+								// Геокодер не дал ни одной точки: помечаем город, иначе выборка
+								// вернёт его же и цикл не кончится.
+								skipped[name] = true;
+								say('Город ' + name + ': геокодер не ответил, пропускаем.');
 								step();
 								return;
 							}
