@@ -6,6 +6,7 @@ Tested up to: 7.1
 Requires PHP: 8.1
 Stable tag: 0.4.1
 License: GPLv3 or later
+Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 Shipping to Ozon pickup points for WooCommerce, built for B2B shipments to legal entities: point cache, rates from Ozon, point selection at checkout, shipment creation and status sync.
@@ -34,13 +35,13 @@ The API client handles the Ozon Delivery redirect explicitly: every POST answers
 2. Activate the plugin.
 3. Go to WooCommerce > Ozon Delivery and enter the Client ID and Client Secret from your Ozon account (Settings > API).
 4. Click "Refresh pickup points" to fill the cache.
-5. Go to WooCommerce > Settings > Shipping, add the "Ozon" method to a zone and set the weight rates.
+5. Go to WooCommerce > Settings > Shipping, add the "Ozon" method to a zone. No rates to fill in: the price comes from Ozon.
 
 == Frequently Asked Questions ==
 
-= Why is the cart price different from the final cost? =
+= When does the delivery price appear? =
 
-Ozon calculates delivery for a specific pickup point and recipient phone number. The cart uses a weight-based rate, and the exact cost is stored in the order after the shipment is created.
+After the customer picks a pickup point and enters a phone number. Ozon calculates delivery for that point and recipient, and the plugin puts the amount into the shipping rate. Until then the method is shown without a sum.
 
 = Do I need a paid Ozon plan? =
 
@@ -60,6 +61,14 @@ Label printing, cancellation and returns through the API.
 
 == Changelog ==
 
+= 0.4.1 =
+* Links to the Ozon seller account and API docs right on the settings screen.
+* The plugin is documented as built for B2B shipments to legal entities.
+
+= 0.4.0 =
+* The delivery price is bound to the selected pickup point.
+* Rate calculation limit and redirects restricted to the Ozon host.
+
 = 0.3.0 =
 * The weight rate table is removed. The plugin has no rates of its own.
 * Until a pickup point is chosen the method shows no amount, only a note.
@@ -78,6 +87,9 @@ Label printing, cancellation and returns through the API.
 * First release: API client, point cache, weight rates, checkout selection, shipment creation, status sync.
 
 == Upgrade Notice ==
+
+= 0.4.1 =
+Settings screen now links to the Ozon seller account, and the plugin is documented as B2B.
 
 = 0.3.0 =
 Own rate tables are gone: delivery is priced by Ozon only.
