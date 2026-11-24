@@ -4,15 +4,15 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.4.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Shipping to Ozon pickup points for WooCommerce: point cache, weight-based rates, point selection at checkout, shipment creation and status sync.
+Shipping to Ozon pickup points for WooCommerce, built for B2B shipments to legal entities: point cache, rates from Ozon, point selection at checkout, shipment creation and status sync.
 
 == Description ==
 
-Adds Ozon pickup points as a shipping method in WooCommerce.
+Adds Ozon pickup points as a shipping method in WooCommerce. Built for B2B shipments to legal entities; orders from private customers will most likely work too, but that scenario is untested.
 
 The plugin caches pickup points in its own table, so search at checkout does not call the Ozon API. The delivery price comes from Ozon: after the customer picks a pickup point and enters a phone number, the plugin calls `/v1/order/checkout` (price only, nothing is created) and uses that amount for the shipping rate. Until a point is chosen the shipping method is shown without an amount and with a note that the price will be calculated after selection.
 

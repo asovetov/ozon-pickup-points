@@ -3,7 +3,7 @@
  * Plugin Name:       Ozon Delivery for WooCommerce
  * Plugin URI:        https://github.com/asovetov/woo-ozon-delivery
  * Description:       Доставка Ozon для WooCommerce: пункты выдачи, расчёт стоимости и создание заявки через Ozon Delivery API.
- * Version:           0.4.0
+ * Version:           0.4.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            3D-Club
@@ -196,11 +196,36 @@ function woo_ozon_render_settings_page(): void {
 		<p>
 			<?php
 			echo esc_html__(
-				'Ключи выдаёт Ozon в личном кабинете продавца: Настройки → API. Без ключей расчёт и создание заявок не работают, но пункты выдачи можно держать в кэше.',
+				'Ключи выдаёт Ozon в личном кабинете продавца: Настройки → API ключи. Без ключей расчёт и создание заявок не работают, но пункты выдачи можно держать в кэше.',
 				'woo-ozon-delivery'
 			);
 			?>
 		</p>
+		<p><?php esc_html_e( 'Куда идти за ключами и настройками доставки:', 'woo-ozon-delivery' ); ?></p>
+		<ul class="ul-disc">
+			<li>
+				<a href="https://seller.ozon.ru/app/settings/api-keys" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Кабинет продавца → API ключи', 'woo-ozon-delivery' ); ?>
+				</a>
+				— Client ID и Client Secret, вкладка Seller API
+			</li>
+			<li>
+				<a href="https://seller.ozon.ru/" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Кабинет продавца', 'woo-ozon-delivery' ); ?>
+				</a>
+				— раздел FBS → Управление логистикой: склады и методы доставки
+			</li>
+			<li>
+				<a href="https://seller-edu.ozon.ru/libra/rfbs/logistics-settings" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Справка Ozon: склады и методы доставки', 'woo-ozon-delivery' ); ?>
+				</a>
+			</li>
+			<li>
+				<a href="https://docs.ozon.ru/api/seller/" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Документация Seller API', 'woo-ozon-delivery' ); ?>
+				</a>
+			</li>
+		</ul>
 		<form method="post">
 			<?php wp_nonce_field( $nonce_action, 'woo_ozon_nonce' ); ?>
 			<table class="form-table" role="presentation">
