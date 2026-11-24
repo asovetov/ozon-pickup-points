@@ -121,7 +121,6 @@ class Woo_Ozon_Quote {
 		$posting = Woo_Ozon_Api::build_posting(
 			1,
 			(int) $point['shipment_method_id'],
-			Woo_Ozon_Api::default_cutoff(),
 			(string) wc_format_decimal( (float) WC()->cart->get_subtotal(), 2 ),
 			self::cart_weight_g( (int) $settings['default_weight_g'] ),
 			(int) $settings['default_length_mm'],
@@ -150,9 +149,17 @@ class Woo_Ozon_Quote {
 		$cost = self::extract_price( $response );
 
 		if ( null === $cost ) {
+			$reason = $response['results'][0]['error']['message'] ?? '';
+
 			wp_send_json_error(
 				array(
-					'message'  => __( 'Ozon не вернул стоимость доставки.', 'ozon-pickup-points' ),
+					'message'  => '' !== $reason
+						? sprintf(
+							/* translators: %s: причина отказа от Ozon */
+							__( 'Ozon не доставит этот заказ в выбранный пункт: %s', 'ozon-pickup-points' ),
+							$reason
+						)
+						: __( 'Ozon не вернул стоимость доставки.', 'ozon-pickup-points' ),
 					'response' => $response,
 				)
 			);
@@ -237,46 +244,47 @@ class Woo_Ozon_Quote {
 	 * @param array<string, mixed> $data Ответ API.
 	 */
 	private static function extract_price( array $data ): ?float {
-		if ( isset( $data['result'] ) && is_array( $data['result'] ) ) {
-			$data = $data['result'];
+		$item = $data['results'][0] ?? ( $data['postings'][0] ?? null );
+
+		// Пункт отказался принимать посылку: Ozon кладёт причину в error этого элемента.
+		if ( is_array( $item ) && isset( $item['error'] ) ) {
+			return null;
 		}
 
 		$paths = array(
+			array( 'results', 0, 'posting', 'estimated_delivery_cost', 'amount' ),
+			array( 'results', 0, 'posting', 'estimated_delivery_cost', 'price' ),
+			array( 'results', 0, 'estimated_delivery_cost', 'amount' ),
 			array( 'postings', 0, 'delivery', 'amount' ),
 			array( 'postings', 0, 'delivery', 'price' ),
-			array( 'postings', 0, 'delivery', 'total_price' ),
 			array( 'delivery', 'amount' ),
-			array( 'delivery', 'price' ),
 			array( 'delivery_price' ),
 			array( 'total_price' ),
-			array( 'price' ),
-			array( 'amount' ),
 		);
+
+		$cost = null;
 
 		foreach ( $paths as $path ) {
 			$value = self::dig( $data, $path );
 
 			if ( is_scalar( $value ) && is_numeric( $value ) ) {
-				return (float) $value;
+				$cost = (float) $value;
+				break;
 			}
 		}
 
-		$found = null;
+		if ( null === $cost ) {
+			return null;
+		}
 
-		array_walk_recursive(
-			$data,
-			static function ( $value, $key ) use ( &$found ): void {
-				if ( null !== $found || ! is_scalar( $value ) || ! is_numeric( $value ) ) {
-					return;
-				}
+		// Страховка обязательна и приходит отдельной строкой: покупатель платит обе.
+		$insurance = self::dig( $data, array( 'results', 0, 'posting', 'estimated_insurance_cost', 'amount' ) );
 
-				if ( is_string( $key ) && preg_match( '/price|amount|cost/i', $key ) ) {
-					$found = (float) $value;
-				}
-			}
-		);
+		if ( is_scalar( $insurance ) && is_numeric( $insurance ) ) {
+			$cost += (float) $insurance;
+		}
 
-		return $found;
+		return $cost;
 	}
 
 	/**

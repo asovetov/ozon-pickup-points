@@ -46,7 +46,7 @@ class Woo_Ozon_Points {
 			max_weight_g INT UNSIGNED NULL,
 			storage_days SMALLINT UNSIGNED NULL,
 			is_bulky TINYINT(1) NOT NULL DEFAULT 0,
-			shipment_method_id INT UNSIGNED NULL,
+			shipment_method_id BIGINT UNSIGNED NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (point_id),
 			KEY city (city),
@@ -55,6 +55,23 @@ class Woo_Ozon_Points {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Ozon отдаёт shipment_method_ids вида 1020005034851300 — в INT UNSIGNED они
+		// не влезают и превращаются в 4294967295. Расширяем колонку один раз.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- тип колонки читаем один раз при обновлении справочника.
+		$column = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+				self::table(),
+				'shipment_method_id'
+			)
+		);
+
+		if ( is_string( $column ) && '' !== $column && false === stripos( $column, 'bigint' ) ) {
+			// Имя таблицы собрано из $wpdb->prefix, подставлять его в prepare() нечем.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+			$wpdb->query( "ALTER TABLE " . self::table() . ' MODIFY shipment_method_id BIGINT UNSIGNED NULL' );
+		}
 	}
 
 	/**
@@ -68,6 +85,140 @@ class Woo_Ozon_Points {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+	}
+
+	/**
+	 * Вытаскивает населённый пункт из полного адреса Ozon.
+	 *
+	 * Адреса приходят в двух порядках: «Россия, Область, Район, Город, Улица, Дом»
+	 * и «Улица, Дом, Город, Область, Россия, Индекс». Город ищем по соседству с улицей.
+	 *
+	 * @param string $address Полный адрес из delivery-point/info.
+	 */
+	private static function guess_city( string $address ): string {
+		$parts = array_values(
+			array_filter(
+				array_map( 'trim', explode( ',', $address ) ),
+				static function ( $part ) {
+					return '' !== $part && 'россия' !== mb_strtolower( $part ) && ! ctype_digit( $part );
+				}
+			)
+		);
+
+		if ( empty( $parts ) ) {
+			return '';
+		}
+
+		$street_markers = array( 'улица', 'ул.', 'проспект', 'пр-т', 'шоссе', 'переулок', 'пер.', 'бульвар', 'набережная', 'площадь', 'пл.', 'микрорайон', 'мкр', 'проезд', 'тупик', 'линия', 'тракт', 'аллея', 'жилой комплекс', 'корпус' );
+		$region_markers = array( 'область', 'обл.', 'край', 'респ', 'район', 'автономный округ' );
+
+		$is_street = static function ( string $part ) use ( $street_markers ): bool {
+			$lowered = mb_strtolower( $part ) . ' ';
+			foreach ( $street_markers as $marker ) {
+				if ( false !== mb_strpos( $lowered, $marker ) ) {
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		$is_region = static function ( string $part ) use ( $region_markers ): bool {
+			$lowered = mb_strtolower( $part ) . ' ';
+			foreach ( $region_markers as $marker ) {
+				if ( false !== mb_strpos( $lowered, $marker ) ) {
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		$street_at = null;
+		foreach ( $parts as $index => $part ) {
+			if ( $is_street( $part ) ) {
+				$street_at = $index;
+				break;
+			}
+		}
+
+		if ( null === $street_at ) {
+			foreach ( $parts as $part ) {
+				if ( ! $is_region( $part ) ) {
+					return self::clean_city( $part );
+				}
+			}
+
+			return '';
+		}
+
+		if ( 0 === $street_at ) {
+			// Улица первой: город идёт сразу после номера дома.
+			foreach ( array_slice( $parts, 1, 2 ) as $part ) {
+				if ( preg_match( '/^\d+[а-яa-z]?(\/\d+[а-яa-z]?)?$/iu', $part ) ) {
+					continue;
+				}
+				if ( $is_region( $part ) ) {
+					return '';
+				}
+
+				return self::clean_city( $part );
+			}
+
+			return '';
+		}
+
+		// Сначала регион: город стоит прямо перед улицей.
+		$before = array();
+		foreach ( array_slice( $parts, 0, $street_at ) as $part ) {
+			if ( ! $is_region( $part ) ) {
+				$before[] = $part;
+			}
+		}
+
+		return $before ? self::clean_city( (string) end( $before ) ) : '';
+	}
+
+	/**
+	 * Снимает с названия города служебные приставки.
+	 *
+	 * @param string $value Название населённого пункта.
+	 */
+	private static function clean_city( string $value ): string {
+		return trim( (string) preg_replace( '/^(г\.?|город|пос\.?|посёлок|пгт\.?|с\.?|село|д\.?|деревня)\s+/iu', '', $value ) );
+	}
+
+	/**
+	 * Детали пунктов с устойчивостью к закрытым id: Ozon отвечает 404 на всю пачку,
+	 * если хотя бы одного пункта уже нет. Тогда делим пачку и доходим до одиночных.
+	 *
+	 * @param int[] $ids Идентификаторы пунктов, не больше 100.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function info_resilient( array $ids ): array {
+		if ( empty( $ids ) ) {
+			return array();
+		}
+
+		try {
+			return Woo_Ozon_Api::delivery_point_info( $ids );
+		} catch ( Woo_Ozon_Error $e ) {
+			if ( 404 !== (int) $e->status_code ) {
+				throw $e;
+			}
+
+			// Одиночный пункт не найден — просто пропускаем его.
+			if ( 1 === count( $ids ) ) {
+				return array();
+			}
+
+			$half = (int) ceil( count( $ids ) / 2 );
+
+			return array_merge(
+				self::info_resilient( array_slice( $ids, 0, $half ) ),
+				self::info_resilient( array_slice( $ids, $half ) )
+			);
+		}
 	}
 
 	/**
@@ -88,8 +239,9 @@ class Woo_Ozon_Points {
 
 		self::install_table();
 
-		$ids    = array();
-		$cursor = '';
+		$ids     = array();
+		$methods = array();
+		$cursor  = '';
 		$pages  = 0;
 
 		try {
@@ -98,12 +250,18 @@ class Woo_Ozon_Points {
 				$points = isset( $page['delivery_points'] ) && is_array( $page['delivery_points'] ) ? $page['delivery_points'] : array();
 
 				foreach ( $points as $point ) {
-					if ( isset( $point['id'] ) ) {
-						$ids[] = (int) $point['id'];
+					// Список отдаёт delivery_point_id, а метод способа доставки лежит здесь же
+					// и в delivery-point/info уже не приходит.
+					if ( empty( $point['delivery_point_id'] ) ) {
+						continue;
 					}
+
+					$id            = (int) $point['delivery_point_id'];
+					$ids[]         = $id;
+					$methods[ $id ] = isset( $point['shipment_method_ids'][0] ) ? (int) $point['shipment_method_ids'][0] : 0;
 				}
 
-				$cursor = isset( $page['pagination']['next_cursor'] ) ? (string) $page['pagination']['next_cursor'] : '';
+				$cursor = isset( $page['next_cursor'] ) ? (string) $page['next_cursor'] : '';
 				$pages++;
 
 				// Защита от бесконечной пагинации: 200 страниц по 1000 — это 200 000 пунктов.
@@ -132,28 +290,34 @@ class Woo_Ozon_Points {
 
 		try {
 			foreach ( array_chunk( $ids, 100 ) as $chunk ) {
-				foreach ( Woo_Ozon_Api::delivery_point_info( $chunk ) as $info ) {
-					if ( empty( $info['id'] ) ) {
+				foreach ( self::info_resilient( $chunk ) as $info ) {
+					if ( empty( $info['delivery_point_id'] ) ) {
 						continue;
 					}
 
-					$address = self::flatten_address( $info );
+					// Пункт, который Ozon закрыл, в кэш не кладём: покупателю он уже недоступен.
+					if ( isset( $info['is_active'] ) && ! $info['is_active'] ) {
+						continue;
+					}
+
+					$id      = (int) $info['delivery_point_id'];
+					$address = (string) ( $info['full_address'] ?? '' );
 
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					$wpdb->replace(
 						self::table(),
 						array(
-							'point_id'           => (int) $info['id'],
+							'point_id'           => $id,
 							'name'               => sanitize_text_field( (string) ( $info['name'] ?? '' ) ),
 							'address'            => sanitize_text_field( $address ),
-							'city'               => sanitize_text_field( (string) ( $info['city'] ?? ( $info['settlement'] ?? '' ) ) ),
+							'city'               => sanitize_text_field( self::guess_city( $address ) ),
 							'latitude'           => isset( $info['coordinates']['latitude'] ) ? (float) $info['coordinates']['latitude'] : null,
 							'longitude'          => isset( $info['coordinates']['longitude'] ) ? (float) $info['coordinates']['longitude'] : null,
 							'point_type'         => sanitize_text_field( (string) ( $info['type'] ?? '' ) ),
 							'max_weight_g'       => isset( $info['restrictions']['max_weight_g'] ) ? (int) $info['restrictions']['max_weight_g'] : null,
-							'storage_days'       => isset( $info['restrictions']['storage_days'] ) ? (int) $info['restrictions']['storage_days'] : null,
+							'storage_days'       => isset( $info['storage_period_days'] ) ? (int) $info['storage_period_days'] : null,
 							'is_bulky'           => ! empty( $info['is_bulky'] ) ? 1 : 0,
-							'shipment_method_id' => isset( $info['shipment_method_id'] ) ? (int) $info['shipment_method_id'] : null,
+							'shipment_method_id' => ! empty( $methods[ $id ] ) ? (int) $methods[ $id ] : null,
 							'updated_at'         => $now,
 						),
 						array( '%d', '%s', '%s', '%s', '%f', '%f', '%s', '%d', '%d', '%d', '%d', '%s' )
@@ -237,10 +401,19 @@ class Woo_Ozon_Points {
 			$params[] = $like;
 		}
 
+		// Совпадение по городу важнее совпадения по области: на «Челябинск» первым
+		// должен идти Челябинск, а не Агаповка из Челябинской области.
+		$order = 'ORDER BY city, address';
+		if ( '' !== $query ) {
+			$order    = 'ORDER BY (city = %s) DESC, (city LIKE %s) DESC, city, address';
+			$params[] = $query;
+			$params[] = '%' . $wpdb->esc_like( $query ) . '%';
+		}
+
 		$params[] = $limit;
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы из $wpdb->prefix, остальное через prepare().
-		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY city, address LIMIT %d';
+		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ' . $order . ' LIMIT %d';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql собран выше и прогнан через prepare().
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );

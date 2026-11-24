@@ -57,6 +57,9 @@ class Woo_Ozon_Api {
 
 	private const TOKEN_TRANSIENT = 'woo_ozon_access_token';
 	private const TOKEN_TTL       = 3000;
+	private const SCOPES          = 'delivery-api.delivery delivery-api.delivery-point delivery-api.order delivery-api.posting delivery-api.return';
+	private const TOKEN_URL       = 'https://xapi.ozon.ru/oauth/token';
+	private const API_URL         = 'https://api-delivery.ozon.ru';
 	private const REDIRECT_CODES  = array( 301, 302, 307, 308 );
 	private const MAX_REDIRECTS   = 4;
 
@@ -69,9 +72,9 @@ class Woo_Ozon_Api {
 		$defaults = array(
 			'client_id'         => '',
 			'client_secret'     => '',
-			'token_url'         => 'https://xapi.ozon.ru/oauth/token',
-			'api_url'           => 'https://xapi.ozon.ru',
-			'scope'             => 'delivery',
+			'token_url'         => self::TOKEN_URL,
+			'api_url'           => self::API_URL,
+			'scope'             => self::SCOPES,
 			'default_weight_g'  => '1000',
 			'default_length_mm' => '220',
 			'default_width_mm'  => '220',
@@ -83,7 +86,15 @@ class Woo_Ozon_Api {
 
 		$saved = is_array( $saved ) ? array_filter( $saved, 'is_scalar' ) : array();
 
-		return array_merge( $defaults, array_map( 'strval', $saved ) );
+		$settings = array_merge( $defaults, array_map( 'strval', $saved ) );
+
+		// Адреса и права задаёт Ozon: значения из базы игнорируем, иначе старые настройки
+		// уводят запросы на xapi.ozon.ru — это старый Rocket API, он отвечает 402.
+		$settings['scope']     = self::SCOPES;
+		$settings['token_url'] = self::TOKEN_URL;
+		$settings['api_url']   = self::API_URL;
+
+		return $settings;
 	}
 
 	/**
@@ -129,7 +140,7 @@ class Woo_Ozon_Api {
 						'client_id'     => $options['client_id'],
 						'client_secret' => $options['client_secret'],
 						'grant_type'    => 'client_credentials',
-						'scope'         => array( $options['scope'] ),
+						'scope'         => preg_split( '/[\s,]+/', (string) $options['scope'], -1, PREG_SPLIT_NO_EMPTY ),
 					)
 				),
 			)
@@ -152,7 +163,12 @@ class Woo_Ozon_Api {
 			throw new Woo_Ozon_Error( 'Ozon не вернул токен', $code, $body );
 		}
 
-		set_transient( self::TOKEN_TRANSIENT, $token, self::TOKEN_TTL );
+		// Ozon отдаёт в expires_in то секунды, то абсолютное время истечения.
+		$expires = (int) ( $body['expires_in'] ?? 0 );
+		$ttl     = $expires > 1000000000 ? $expires - time() : ( $expires > 0 ? $expires : self::TOKEN_TTL );
+		$ttl     = max( 60, $ttl - 300 );
+
+		set_transient( self::TOKEN_TRANSIENT, $token, $ttl );
 
 		return $token;
 	}
@@ -407,17 +423,17 @@ class Woo_Ozon_Api {
 	public static function build_posting(
 		int $request_id,
 		int $shipment_method_id,
-		string $cutoff_at,
 		string $declared_value,
 		int $weight_g,
 		int $length_mm,
 		int $width_mm,
 		int $height_mm
 	): array {
+		// cutoff_at не отправляем: Ozon возвращает свой в ответе на checkout, а строка
+		// в чужом формате валит весь запрос («JSON value could not be converted»).
 		return array(
 			'request_id'        => $request_id,
 			'shipment_method_id' => $shipment_method_id,
-			'cutoff_at'         => $cutoff_at,
 			'declared_value'    => array(
 				'amount'        => $declared_value,
 				'currency_code' => 'RUB',

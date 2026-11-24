@@ -33,8 +33,10 @@ class Woo_Ozon_Order {
 	 * @var array<string, string>
 	 */
 	private const CORE_MAP = array(
-		'created'             => 'wc-processing',
-		'awaiting_approve'    => 'wc-processing',
+		// «created» и «awaiting_approve» — заявка ещё не подтверждена в кабинете Ozon,
+		// поэтому заказ ждёт, а не уходит в «доставляется».
+		'created'             => 'wc-on-hold',
+		'awaiting_approve'    => 'wc-on-hold',
 		'awaiting_packaging'  => 'wc-processing',
 		'sent'                => 'wc-processing',
 		'delivering'          => 'wc-processing',
@@ -128,8 +130,9 @@ class Woo_Ozon_Order {
 			return;
 		}
 
-		$point  = (string) $order->get_meta( Woo_Ozon_Checkout::META_POINT_LABEL );
-		$number = (string) $order->get_meta( self::META_ORDER_NUMBER );
+		$point   = (string) $order->get_meta( Woo_Ozon_Checkout::META_POINT_LABEL );
+		$number  = (string) $order->get_meta( self::META_ORDER_NUMBER );
+		$posting = (string) $order->get_meta( self::META_POSTING_NUMBER );
 		$status = (string) $order->get_meta( self::META_STATUS );
 		$cost   = (string) $order->get_meta( self::META_COST );
 
@@ -143,6 +146,14 @@ class Woo_Ozon_Order {
 				esc_html__( 'Заявка Ozon', 'ozon-pickup-points' ),
 				esc_html( $number )
 			);
+
+			if ( '' !== $posting ) {
+				printf(
+					'<p><strong>%s</strong><br><code>%s</code></p>',
+					esc_html__( 'Посылка в Ozon', 'ozon-pickup-points' ),
+					esc_html( $posting )
+				);
+			}
 
 			if ( '' !== $status ) {
 				printf(
@@ -222,6 +233,25 @@ class Woo_Ozon_Order {
 	 * @param WC_Order $order Заказ.
 	 * @return array{ok: bool, message: string}
 	 */
+	/**
+	 * Детерминированный UUID для Idempotency-Key: один заказ — один ключ.
+	 *
+	 * @param WC_Order $order Заказ.
+	 */
+	private static function idempotency_key( WC_Order $order ): string {
+		$hash = md5( 'ozon-order-' . $order->get_id() . '-' . (string) $order->get_order_key() );
+
+		return sprintf(
+			'%s-%s-4%s-%s%s-%s',
+			substr( $hash, 0, 8 ),
+			substr( $hash, 8, 4 ),
+			substr( $hash, 13, 3 ),
+			dechex( ( hexdec( $hash[16] ) & 0x3 ) | 0x8 ),
+			substr( $hash, 17, 3 ),
+			substr( $hash, 20, 12 )
+		);
+	}
+
 	public static function create_shipment( WC_Order $order ): array {
 		$point_id = (int) $order->get_meta( Woo_Ozon_Checkout::META_POINT_ID );
 		if ( $point_id <= 0 ) {
@@ -246,12 +276,22 @@ class Woo_Ozon_Order {
 		$posting = Woo_Ozon_Api::build_posting(
 			1,
 			(int) $point['shipment_method_id'],
-			Woo_Ozon_Api::default_cutoff(),
 			(string) max( 0, (float) $order->get_total() ),
 			$weight,
 			(int) $settings['default_length_mm'],
 			(int) $settings['default_width_mm'],
 			(int) $settings['default_height_mm']
+		);
+
+		// order/create требует описание посылки (1..500 символов), checkout без него обходится.
+		$posting['description'] = mb_substr(
+			sprintf(
+				/* translators: %s: номер заказа */
+				__( 'Заказ №%s с сайта 3d-club.ru', 'ozon-pickup-points' ),
+				$order->get_order_number()
+			),
+			0,
+			500
 		);
 
 		$payload = array(
@@ -261,7 +301,8 @@ class Woo_Ozon_Order {
 		);
 
 		// Ключ идемпотентности привязан к заказу: повтор кнопки не создаст вторую посылку.
-		$idempotency = 'wc-' . $order->get_id() . '-' . substr( md5( (string) $order->get_order_key() ), 0, 12 );
+		// Ozon принимает только UUID, поэтому собираем его из хеша заказа.
+		$idempotency = self::idempotency_key( $order );
 
 		try {
 			$response = Woo_Ozon_Api::create_order( $payload, $idempotency );

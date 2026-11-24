@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Delivery to Ozon Pickup Points for WooCommerce
  * Plugin URI:        https://github.com/asovetov/ozon-pickup-points
- * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправления юридическим лицам.
- * Version:           0.4.1
+ * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправки от юридических лиц.
+ * Version:           0.4.3
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            3D-Club
@@ -22,7 +22,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WOO_OZON_VERSION', '0.4.0' );
+define( 'WOO_OZON_VERSION', '0.4.3' );
 define( 'WOO_OZON_FILE', __FILE__ );
 define( 'WOO_OZON_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WOO_OZON_URL', plugin_dir_url( __FILE__ ) );
@@ -116,9 +116,6 @@ add_action(
 		$keys = array(
 			'client_id',
 			'client_secret',
-			'token_url',
-			'api_url',
-			'scope',
 			'default_weight_g',
 			'default_length_mm',
 			'default_width_mm',
@@ -147,7 +144,7 @@ add_action(
 		update_option( 'woo_ozon_settings', $saved );
 		Woo_Ozon_Api::flush_token();
 
-		wp_safe_redirect( add_query_arg( 'woo-ozon-saved', '1', wp_get_referer() ?: admin_url( 'admin.php?page=woo-ozon-delivery' ) ) );
+		wp_safe_redirect( add_query_arg( 'woo-ozon-saved', '1', wp_get_referer() ?: admin_url( 'admin.php?page=ozon-pickup-points' ) ) );
 		exit;
 	}
 );
@@ -163,9 +160,6 @@ function woo_ozon_render_settings_page(): void {
 	$fields = array(
 		'client_id'         => __( 'Client ID', 'ozon-pickup-points' ),
 		'client_secret'     => __( 'Client Secret', 'ozon-pickup-points' ),
-		'token_url'         => __( 'URL токена', 'ozon-pickup-points' ),
-		'api_url'           => __( 'URL API', 'ozon-pickup-points' ),
-		'scope'             => __( 'Scope', 'ozon-pickup-points' ),
 		'default_weight_g'  => __( 'Вес по умолчанию, г', 'ozon-pickup-points' ),
 		'default_length_mm' => __( 'Длина по умолчанию, мм', 'ozon-pickup-points' ),
 		'default_width_mm'  => __( 'Ширина по умолчанию, мм', 'ozon-pickup-points' ),

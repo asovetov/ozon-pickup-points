@@ -4,7 +4,7 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.1
+Stable tag: 0.4.3
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -13,7 +13,7 @@ Ozon pickup points for WooCommerce: cached points, price from Ozon, checkout sel
 
 == Description ==
 
-Adds Ozon pickup points as a shipping method in WooCommerce. Built for B2B shipments to legal entities; orders from private customers will most likely work too, but that scenario is untested.
+Adds Ozon pickup points as a shipping method in WooCommerce. Built for B2B shipments from legal entities; orders from private customers will most likely work too, but that scenario is untested.
 
 The plugin caches pickup points in its own table, so search at checkout does not call the Ozon API. The delivery price comes from Ozon: after the customer picks a pickup point and enters a phone number, the plugin calls `/v1/order/checkout` (price only, nothing is created) and uses that amount for the shipping rate. Until a point is chosen the shipping method is shown without an amount and with a note that the price will be calculated after selection.
 
@@ -61,9 +61,18 @@ Label printing, cancellation and returns through the API.
 
 == Changelog ==
 
+= 0.4.3 =
+* Requests go to api-delivery.ozon.ru; the old xapi.ozon.ru host answered 402.
+* Scopes are the full delivery-api.* list Ozon issues for the app.
+* Fixed field names of the Ozon responses: delivery_point_id, full_address, next_cursor, storage_period_days, shipment_method_ids.
+* shipment_method_id is stored as BIGINT: Ozon ids exceed the INT range.
+* One closed pickup point no longer breaks the whole catalogue sync.
+* The settings screen redirect no longer points to the old plugin slug.
+* Pickup point search ranks city matches above region matches.
+
 = 0.4.1 =
 * Links to the Ozon seller account and API docs right on the settings screen.
-* The plugin is documented as built for B2B shipments to legal entities.
+* The plugin is documented as built for B2B shipments from legal entities.
 
 = 0.4.0 =
 * The delivery price is bound to the selected pickup point.
