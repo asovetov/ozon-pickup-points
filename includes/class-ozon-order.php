@@ -20,6 +20,7 @@ class Woo_Ozon_Order {
 
 	public const META_ORDER_NUMBER   = '_woo_ozon_order_number';
 	public const META_POSTING_NUMBER = '_woo_ozon_posting_number';
+	public const META_POSTINGS       = '_woo_ozon_postings';
 	public const META_STATUS         = '_woo_ozon_status';
 	public const META_COST           = '_woo_ozon_cost';
 	public const CRON_HOOK           = 'woo_ozon_sync_statuses';
@@ -42,6 +43,8 @@ class Woo_Ozon_Order {
 		'delivering'          => 'wc-processing',
 		'ready_for_pickup'    => 'wc-processing',
 		'delivered'           => 'wc-completed',
+		// Ozon пишет «canceled» с одной «l», старые ответы — «cancelled».
+		'canceled'            => 'wc-cancelled',
 		'cancelled'           => 'wc-cancelled',
 		'arbitration'         => 'wc-on-hold',
 	);
@@ -51,7 +54,7 @@ class Woo_Ozon_Order {
 	 *
 	 * @var string[]
 	 */
-	private const TERMINAL = array( 'delivered', 'cancelled', 'cancelled_from_split_pending' );
+	private const TERMINAL = array( 'delivered', 'canceled', 'cancelled', 'cancelled_from_split_pending' );
 
 	/**
 	 * Карта статусов с учётом фильтра.
@@ -132,7 +135,11 @@ class Woo_Ozon_Order {
 
 		$point   = (string) $order->get_meta( Woo_Ozon_Checkout::META_POINT_LABEL );
 		$number  = (string) $order->get_meta( self::META_ORDER_NUMBER );
-		$posting = (string) $order->get_meta( self::META_POSTING_NUMBER );
+		$numbers = (array) $order->get_meta( self::META_POSTINGS );
+		if ( empty( $numbers ) ) {
+			$single  = (string) $order->get_meta( self::META_POSTING_NUMBER );
+			$numbers = '' !== $single ? array( $single ) : array();
+		}
 		$status = (string) $order->get_meta( self::META_STATUS );
 		$cost   = (string) $order->get_meta( self::META_COST );
 
@@ -147,12 +154,22 @@ class Woo_Ozon_Order {
 				esc_html( $number )
 			);
 
-			if ( '' !== $posting ) {
+			if ( ! empty( $numbers ) ) {
 				printf(
-					'<p><strong>%s</strong><br><code>%s</code></p>',
-					esc_html__( 'Посылка в Ozon', 'ozon-pickup-points' ),
-					esc_html( $posting )
+					'<p><strong>%s</strong><br>',
+					esc_html(
+						count( $numbers ) > 1
+							/* translators: %d: количество посылок */
+							? sprintf( __( 'Посылки в Ozon (%d мест)', 'ozon-pickup-points' ), count( $numbers ) )
+							: __( 'Посылка в Ozon', 'ozon-pickup-points' )
+					)
 				);
+
+				foreach ( $numbers as $posting_number ) {
+					printf( '<code>%s</code><br>', esc_html( (string) $posting_number ) );
+				}
+
+				echo '</p>';
 			}
 
 			if ( '' !== $status ) {
@@ -273,30 +290,55 @@ class Woo_Ozon_Order {
 		$phone    = self::normalize_phone( (string) $order->get_billing_phone() );
 		$weight   = self::order_weight_g( $order, (int) $settings['default_weight_g'] );
 
-		$posting = Woo_Ozon_Api::build_posting(
-			1,
-			(int) $point['shipment_method_id'],
-			(string) max( 0, (float) $order->get_total() ),
-			$weight,
-			(int) $settings['default_length_mm'],
-			(int) $settings['default_width_mm'],
-			(int) $settings['default_height_mm']
-		);
+		// Места из карточки заказа: одна заявка, по посылке на место.
+		$places = function_exists( 'club3d_places_get' ) ? club3d_places_get( $order->get_id() ) : array();
 
-		// order/create требует описание посылки (1..500 символов), checkout без него обходится.
-		$posting['description'] = mb_substr(
-			sprintf(
-				/* translators: %s: номер заказа */
-				__( 'Заказ №%s с сайта 3d-club.ru', 'ozon-pickup-points' ),
-				$order->get_order_number()
-			),
-			0,
-			500
-		);
+		if ( empty( $places ) ) {
+			$places = array(
+				array(
+					'label'    => __( 'Место 1', 'ozon-pickup-points' ),
+					'length'   => (int) $settings['default_length_mm'],
+					'width'    => (int) $settings['default_width_mm'],
+					'height'   => (int) $settings['default_height_mm'],
+					'weight_g' => $weight,
+				),
+			);
+		}
+
+		$postings = array();
+		$number   = 0;
+
+		foreach ( $places as $place ) {
+			$number++;
+
+			$posting = Woo_Ozon_Api::build_posting(
+				$number,
+				(int) $point['shipment_method_id'],
+				(string) max( 0, (float) $order->get_total() / max( 1, count( $places ) ) ),
+				max( 1, (int) ( $place['weight_g'] ?? $weight ) ),
+				max( 1, (int) ( $place['length'] ?? $settings['default_length_mm'] ) ),
+				max( 1, (int) ( $place['width'] ?? $settings['default_width_mm'] ) ),
+				max( 1, (int) ( $place['height'] ?? $settings['default_height_mm'] ) )
+			);
+
+			// order/create требует описание посылки (1..500 символов).
+			$posting['description'] = mb_substr(
+				sprintf(
+					/* translators: 1: номер заказа, 2: номер места */
+					__( 'Заказ №%1$s, место %2$d', 'ozon-pickup-points' ),
+					$order->get_order_number(),
+					$number
+				),
+				0,
+				500
+			);
+
+			$postings[] = $posting;
+		}
 
 		$payload = array(
 			'recipient' => array( 'phone_number' => $phone ),
-			'postings'  => array( $posting ),
+			'postings'  => $postings,
 			'delivery'  => array( 'delivery_point' => array( 'delivery_point_id' => $point_id ) ),
 		);
 
@@ -315,20 +357,27 @@ class Woo_Ozon_Order {
 			);
 		}
 
-		$order_number   = (string) ( $response['order_number'] ?? '' );
-		$posting_number = (string) ( $response['postings'][0]['posting_number'] ?? '' );
+		$order_number = (string) ( $response['order_number'] ?? '' );
+		$numbers      = array();
+
+		foreach ( (array) ( $response['postings'] ?? array() ) as $created ) {
+			if ( ! empty( $created['posting_number'] ) ) {
+				$numbers[] = (string) $created['posting_number'];
+			}
+		}
 
 		$order->update_meta_data( self::META_ORDER_NUMBER, $order_number );
-		$order->update_meta_data( self::META_POSTING_NUMBER, $posting_number );
+		$order->update_meta_data( self::META_POSTING_NUMBER, (string) ( $numbers[0] ?? '' ) );
+		$order->update_meta_data( self::META_POSTINGS, $numbers );
 		$order->update_meta_data( self::META_STATUS, 'created' );
 		$order->save();
 
 		$order->add_order_note(
 			sprintf(
-				/* translators: 1: номер заявки Ozon, 2: номер посылки */
-				__( 'Ozon: заявка создана. Заказ %1$s, посылка %2$s.', 'ozon-pickup-points' ),
+				/* translators: 1: номер заявки Ozon, 2: номера посылок */
+				__( 'Ozon: заявка создана. Заказ %1$s, посылки: %2$s.', 'ozon-pickup-points' ),
 				$order_number,
-				$posting_number
+				implode( ', ', $numbers )
 			)
 		);
 
@@ -410,8 +459,14 @@ class Woo_Ozon_Order {
 		);
 
 		foreach ( $orders as $order ) {
-			$posting_number = (string) $order->get_meta( self::META_POSTING_NUMBER );
-			if ( '' === $posting_number ) {
+			$numbers = (array) $order->get_meta( self::META_POSTINGS );
+
+			if ( empty( $numbers ) ) {
+				$single = (string) $order->get_meta( self::META_POSTING_NUMBER );
+				$numbers = '' !== $single ? array( $single ) : array();
+			}
+
+			if ( empty( $numbers ) ) {
 				continue;
 			}
 
@@ -421,7 +476,7 @@ class Woo_Ozon_Order {
 			}
 
 			try {
-				$data = Woo_Ozon_Api::post( '/v1/posting/info', array( 'posting_numbers' => array( $posting_number ) ) );
+				$data = Woo_Ozon_Api::post( '/v1/posting/info', array( 'posting_numbers' => $numbers ) );
 			} catch ( Woo_Ozon_Error $e ) {
 				$order->add_order_note( 'Ozon: не удалось получить статус — ' . $e->getMessage() );
 				continue;

@@ -32,7 +32,8 @@ class Woo_Ozon_Checkout {
 	 * Подключает хуки.
 	 */
 	public static function init(): void {
-		add_action( 'woocommerce_review_order_before_payment', array( __CLASS__, 'render_field' ) );
+		// Блок выбора пункта живёт прямо в строке тарифа — как у СДЭК.
+		add_action( 'woocommerce_after_shipping_rate', array( __CLASS__, 'render_rate_block' ), 10, 2 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 		add_action( 'wp_ajax_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
 		add_action( 'wp_ajax_nopriv_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
@@ -55,7 +56,7 @@ class Woo_Ozon_Checkout {
 			'woo-ozon-checkout',
 			WOO_OZON_URL . 'assets/js/ozon-checkout.js',
 			array( 'jquery' ),
-			WOO_OZON_VERSION,
+			(string) filemtime( WOO_OZON_DIR . 'assets/js/ozon-checkout.js' ),
 			true
 		);
 
@@ -66,6 +67,7 @@ class Woo_Ozon_Checkout {
 				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
 				'nonce'      => wp_create_nonce( 'woo_ozon_points' ),
 				'quoteNonce' => wp_create_nonce( 'woo_ozon_quote' ),
+				'mapKey'     => Woo_Ozon_Api::map_key(),
 				'i18n'    => array(
 					'empty'   => __( 'Введите город или адрес пункта', 'ozon-pickup-points' ),
 					'loading' => __( 'Ищем пункты…', 'ozon-pickup-points' ),
@@ -77,6 +79,9 @@ class Woo_Ozon_Checkout {
 					/* translators: %s: текст ошибки от Ozon. */
 					'quoteFail' => __( 'Ozon не рассчитал доставку: %s', 'ozon-pickup-points' ),
 					'needPhone' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'ozon-pickup-points' ),
+					'mapNoCity' => __( 'Город не указан', 'ozon-pickup-points' ),
+					'cityChanged' => __( 'Город изменился — выберите пункт заново.', 'ozon-pickup-points' ),
+					'mapFail'   => __( 'Карта не загрузилась. Выберите пункт списком.', 'ozon-pickup-points' ),
 				),
 			)
 		);
@@ -85,7 +90,7 @@ class Woo_Ozon_Checkout {
 			'woo-ozon-checkout',
 			WOO_OZON_URL . 'assets/css/ozon-checkout.css',
 			array(),
-			WOO_OZON_VERSION
+			(string) filemtime( WOO_OZON_DIR . 'assets/css/ozon-checkout.css' )
 		);
 	}
 
@@ -110,28 +115,46 @@ class Woo_Ozon_Checkout {
 	/**
 	 * Поле выбора пункта на странице оформления.
 	 */
-	public static function render_field(): void {
-		// Блок рисуем всегда: WooCommerce обновляет по AJAX только таблицу заказа и оплату,
-		// а всё, что стоит между ними, остаётся в разметке с прошлой загрузки.
-		// Видимость переключает скрипт по выбранному способу доставки.
-		$selected = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_id', '' ) : '';
+	/**
+	 * Кнопка выбора пункта внутри строки тарифа Ozon.
+	 *
+	 * @param WC_Shipping_Rate $method Тариф.
+	 * @param int              $index  Порядковый номер.
+	 */
+	public static function render_rate_block( $method, $index ): void {
+		unset( $index );
+
+		if ( ! $method instanceof WC_Shipping_Rate || 0 !== strpos( (string) $method->get_id(), 'woo_ozon' ) ) {
+			return;
+		}
+
+		$selected       = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_id', '' ) : '';
 		$selected_label = WC()->session ? (string) WC()->session->get( 'woo_ozon_point_label', '' ) : '';
-		$city     = WC()->customer ? (string) WC()->customer->get_billing_city() : '';
+		$city           = WC()->customer ? (string) WC()->customer->get_billing_city() : '';
 		?>
-		<div class="woo-ozon-pvz" id="woo-ozon-pvz"<?php echo self::ozon_selected() ? '' : ' hidden'; ?>>
-			<h3><?php echo esc_html__( 'Пункт выдачи Ozon', 'ozon-pickup-points' ); ?></h3>
+		<div class="woo-ozon-pvz" id="woo-ozon-pvz">
+			<button type="button" class="button open-pvz-btn" id="woo-ozon-map-open">
+				<?php echo esc_html__( 'Выбрать пункт на карте', 'ozon-pickup-points' ); ?>
+			</button>
 
-			<p class="form-row form-row-wide">
-				<label for="woo-ozon-query"><?php echo esc_html__( 'Город или адрес', 'ozon-pickup-points' ); ?></label>
-				<input type="search" id="woo-ozon-query" class="input-text" value="<?php echo esc_attr( $city ); ?>" placeholder="<?php echo esc_attr__( 'Например, Санкт-Петербург', 'ozon-pickup-points' ); ?>" autocomplete="off">
+			<p class="woo-ozon-pvz__chosen" id="woo-ozon-chosen"<?php echo '' === $selected_label ? ' hidden' : ''; ?>>
+				<?php echo esc_html( $selected_label ); ?>
 			</p>
-
-			<div class="woo-ozon-pvz__list" id="woo-ozon-list" role="listbox" aria-live="polite"></div>
 
 			<p class="woo-ozon-quote" id="woo-ozon-quote-status" aria-live="polite"></p>
 
 			<input type="hidden" name="woo_ozon_point_id" id="woo-ozon-point-id" value="<?php echo esc_attr( $selected ); ?>">
 			<input type="hidden" name="woo_ozon_point_label" id="woo-ozon-point-label" value="<?php echo esc_attr( $selected_label ); ?>">
+			<input type="hidden" id="woo-ozon-city" value="<?php echo esc_attr( $city ); ?>">
+			<input type="hidden" id="woo-ozon-point-city" value="">
+		</div>
+
+		<div class="woo-ozon-map" id="woo-ozon-map-modal" hidden>
+			<div class="woo-ozon-map__bar">
+				<strong id="woo-ozon-map-city"></strong>
+				<button type="button" class="woo-ozon-map__close" id="woo-ozon-map-close" aria-label="<?php echo esc_attr__( 'Закрыть карту', 'ozon-pickup-points' ); ?>">×</button>
+			</div>
+			<div class="woo-ozon-map__canvas" id="woo-ozon-map-canvas"></div>
 		</div>
 		<?php
 	}
@@ -144,8 +167,11 @@ class Woo_Ozon_Checkout {
 
 		$query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';
 		$city  = isset( $_GET['city'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['city'] ) ) : '';
+		$map   = isset( $_GET['map'] ) && '1' === sanitize_text_field( wp_unslash( (string) $_GET['map'] ) );
 
-		$rows = Woo_Ozon_Points::search( $query, $city, 40 );
+		$rows = $map
+			? Woo_Ozon_Points::by_city( $city, 300 )
+			: Woo_Ozon_Points::search( $query, $city, 40 );
 
 		$points = array();
 		foreach ( $rows as $row ) {
@@ -154,6 +180,8 @@ class Woo_Ozon_Checkout {
 				'name'    => (string) $row['name'],
 				'address' => (string) $row['address'],
 				'city'    => (string) $row['city'],
+				'lat'     => isset( $row['latitude'] ) ? (float) $row['latitude'] : 0,
+				'lng'     => isset( $row['longitude'] ) ? (float) $row['longitude'] : 0,
 			);
 		}
 

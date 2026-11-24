@@ -85,3 +85,49 @@
 .woo-ozon-quote:empty {
 	display: none;
 }
+
+/* Карта пунктов выдачи. */
+.woo-ozon-map {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+}
+
+.woo-ozon-map[hidden] { display: none; }
+
+.woo-ozon-map__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 16px;
+	border-bottom: 1px solid #e2e8f0;
+}
+
+.woo-ozon-map__close {
+	border: 0;
+	background: transparent;
+	font-size: 26px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 6px;
+}
+
+.woo-ozon-map__canvas {
+	flex: 1 1 auto;
+	width: 100%;
+	height: 70vh;
+	min-height: 420px;
+}
+
+@media (min-width: 900px) {
+	.woo-ozon-map { inset: 5vh 8vw; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: hidden; }
+}
+
+/* Блок выбора пункта живёт прямо в строке тарифа, как у СДЭК. */
+.woo-ozon-pvz { margin: 6px 0 2px 24px; }
+.woo-ozon-pvz__chosen { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }
+.woo-ozon-quote { margin: 4px 0 0; font-size: 12px; line-height: 1.4; opacity: .85; }

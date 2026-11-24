@@ -4,7 +4,7 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.3
+Stable tag: 0.4.4
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -58,6 +58,26 @@ Label printing, cancellation and returns through the API.
 == Screenshots ==
 
 1. Pickup point selection at checkout, next to other shipping methods.
+
+== External services ==
+
+This plugin talks to two third-party services.
+
+= Ozon Delivery API =
+
+* Service: Ozon Delivery API (https://api-delivery.ozon.ru), operated by Ozon.
+* What is sent: the pickup point catalogue request, delivery price calculation, and the shipment itself (recipient phone, parcel size, weight and declared value).
+* When: when the site syncs the pickup point catalogue, when a customer chooses a point on checkout, and when the shop sends an order.
+* Terms: https://docs.ozon.ru/api/ozon-delivery/ and the Ozon seller agreement.
+
+= Yandex Maps =
+
+* Service: Yandex Maps JavaScript API and Geocoder (https://api-maps.yandex.ru), operated by Yandex.
+* What is sent: the map is loaded only when the customer opens the pickup point map, and the shop's API key is passed with the request. The city typed on checkout is sent to the map service to centre the map.
+* When: only after the customer clicks "Choose a point on the map".
+* Terms: https://yandex.ru/legal/maps_api/.
+
+Both services are optional in the sense that the plugin works without the map key: without it the customer picks a point from the list.
 
 == Changelog ==
 

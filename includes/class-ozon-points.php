@@ -372,6 +372,34 @@ class Woo_Ozon_Points {
 	}
 
 	/**
+	 * Пункты города с координатами — для карты.
+	 *
+	 * @param string $city  Город.
+	 * @param int    $limit Сколько отдать.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function by_city( string $city, int $limit = 300 ): array {
+		global $wpdb;
+
+		$city = trim( $city );
+		if ( '' === $city ) {
+			return array();
+		}
+
+		$table = self::table();
+		$like  = '%' . $wpdb->esc_like( $city ) . '%';
+		$limit = max( 1, min( $limit, 300 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы из $wpdb->prefix.
+		$sql = "SELECT * FROM {$table} WHERE city LIKE %s AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY (city = %s) DESC, address LIMIT %d";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql прогнан через prepare() строкой ниже.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $like, $city, $limit ), ARRAY_A );
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Поиск пунктов по городу и адресу.
 	 *
 	 * @param string $query Строка поиска.

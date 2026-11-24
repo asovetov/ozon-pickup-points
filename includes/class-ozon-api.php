@@ -80,6 +80,7 @@ class Woo_Ozon_Api {
 			'default_width_mm'  => '220',
 			'default_height_mm' => '70',
 			'markup_percent'    => '0',
+			'map_key'           => '',
 		);
 
 		$saved = get_option( 'woo_ozon_settings', array() );
@@ -95,6 +96,22 @@ class Woo_Ozon_Api {
 		$settings['api_url']   = self::API_URL;
 
 		return $settings;
+	}
+
+
+	/**
+	 * Ключ JavaScript API Яндекс.Карт.
+	 *
+	 * Свои настройки в приоритете: у магазина без СДЭК брать ключ неоткуда.
+	 */
+	public static function map_key(): string {
+		$settings = self::settings();
+
+		if ( '' !== trim( (string) $settings['map_key'] ) ) {
+			return trim( (string) $settings['map_key'] );
+		}
+
+		return trim( (string) get_option( 'club3d_yandex_key', '' ) );
 	}
 
 	/**

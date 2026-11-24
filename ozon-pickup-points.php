@@ -3,7 +3,7 @@
  * Plugin Name:       Delivery to Ozon Pickup Points for WooCommerce
  * Plugin URI:        https://github.com/asovetov/ozon-pickup-points
  * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправки от юридических лиц.
- * Version:           0.4.3
+ * Version:           0.4.4
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            3D-Club
@@ -22,7 +22,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WOO_OZON_VERSION', '0.4.3' );
+define( 'WOO_OZON_VERSION', '0.4.4' );
 define( 'WOO_OZON_FILE', __FILE__ );
 define( 'WOO_OZON_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WOO_OZON_URL', plugin_dir_url( __FILE__ ) );
@@ -121,6 +121,7 @@ add_action(
 			'default_width_mm',
 			'default_height_mm',
 			'markup_percent',
+			'map_key',
 		);
 
 		$numeric = array( 'default_weight_g', 'default_length_mm', 'default_width_mm', 'default_height_mm', 'markup_percent' );
@@ -226,6 +227,14 @@ function woo_ozon_render_settings_page(): void {
 								value="<?php echo esc_attr( (string) ( $options[ $key ] ?? '' ) ); ?>"
 								autocomplete="off"
 							>
+							<?php if ( 'map_key' === $key ) : ?>
+								<p class="description">
+									<?php echo esc_html__( 'Без ключа карта в оформлении не откроется, выбрать пункт можно будет только списком.', 'ozon-pickup-points' ); ?>
+									<a href="https://developer.tech.yandex.ru/services" target="_blank" rel="noopener">
+										<?php echo esc_html__( 'Получить ключ JavaScript API и Geocoder', 'ozon-pickup-points' ); ?>
+									</a>
+								</p>
+							<?php endif; ?>
 						</td>
 					</tr>
 				<?php endforeach; ?>
