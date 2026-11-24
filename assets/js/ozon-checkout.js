@@ -177,6 +177,63 @@
 		}
 	}
 
+
+	/*
+	 * Координаты Ozon у части пунктов смещены на пару сотен метров. Правим их
+	 * геокодером в браузере: серверные ключи Яндекс режет по реферу, а клиентский
+	 * ключ работает. Результат складываем в базу, второй раз не спрашиваем.
+	 */
+	function geocodeMissing(points, modal) {
+		var todo = points.filter(function (point) { return !point.geo; }).slice(0, 40);
+
+		if (!todo.length) {
+			return;
+		}
+
+		var done = [];
+		var index = 0;
+
+		function save() {
+			if (!done.length) {
+				return;
+			}
+
+			var body = new FormData();
+			body.append('action', 'woo_ozon_save_geo');
+			body.append('nonce', WooOzon.nonce);
+			body.append('points', JSON.stringify(done));
+
+			fetch(WooOzon.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: body })
+				.then(function () { draw(points, modal); })
+				.catch(function () {});
+		}
+
+		function next() {
+			if (index >= todo.length) {
+				save();
+				return;
+			}
+
+			var point = todo[ index++ ];
+
+			window.ymaps.geocode(point.address, { results: 1 })
+				.then(function (result) {
+					var first = result.geoObjects.get(0);
+					if (first) {
+						var coords = first.geometry.getCoordinates();
+						point.lat = coords[0];
+						point.lng = coords[1];
+						point.geo = 1;
+						done.push({ id: point.id, lat: coords[0], lng: coords[1] });
+					}
+					next();
+				})
+				.catch(function () { next(); });
+		}
+
+		next();
+	}
+
 	function show(city, modal) {
 		var cityLabel = field('woo-ozon-map-city');
 
@@ -201,6 +258,7 @@
 			})
 			.then(function (points) {
 				draw(points, modal);
+				geocodeMissing(points, modal);
 				if (!points.length) {
 					window.ymaps.geocode(city).then(function (result) {
 						var first = result.geoObjects.get(0);

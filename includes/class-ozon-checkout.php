@@ -37,6 +37,8 @@ class Woo_Ozon_Checkout {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 		add_action( 'wp_ajax_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
 		add_action( 'wp_ajax_nopriv_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
+		add_action( 'wp_ajax_woo_ozon_save_geo', array( __CLASS__, 'ajax_save_geo' ) );
+		add_action( 'wp_ajax_nopriv_woo_ozon_save_geo', array( __CLASS__, 'ajax_save_geo' ) );
 		add_action( 'woocommerce_checkout_process', array( __CLASS__, 'validate' ) );
 		add_action( 'woocommerce_checkout_update_order_review', array( __CLASS__, 'remember_point' ) );
 		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'save_to_order' ), 10, 2 );
@@ -180,12 +182,32 @@ class Woo_Ozon_Checkout {
 				'name'    => (string) $row['name'],
 				'address' => (string) $row['address'],
 				'city'    => (string) $row['city'],
-				'lat'     => isset( $row['latitude'] ) ? (float) $row['latitude'] : 0,
-				'lng'     => isset( $row['longitude'] ) ? (float) $row['longitude'] : 0,
+				'lat'     => isset( $row['geo_lat'] ) && null !== $row['geo_lat'] ? (float) $row['geo_lat'] : (float) ( $row['latitude'] ?? 0 ),
+				'lng'     => isset( $row['geo_lng'] ) && null !== $row['geo_lng'] ? (float) $row['geo_lng'] : (float) ( $row['longitude'] ?? 0 ),
+				'geo'     => ! empty( $row['geo_lat'] ) ? 1 : 0,
 			);
 		}
 
 		wp_send_json_success( array( 'points' => $points ) );
+	}
+
+
+	/**
+	 * AJAX: браузер присылает координаты, полученные геокодером.
+	 */
+	public static function ajax_save_geo(): void {
+		check_ajax_referer( 'woo_ozon_points', 'nonce' );
+
+		$raw  = isset( $_POST['points'] ) ? (string) wp_unslash( $_POST['points'] ) : '';
+		$rows = json_decode( $raw, true );
+
+		if ( ! is_array( $rows ) ) {
+			wp_send_json_error( array( 'message' => __( 'Нет координат.', 'ozon-pickup-points' ) ) );
+		}
+
+		$saved = Woo_Ozon_Points::save_geo( array_slice( $rows, 0, 200 ) );
+
+		wp_send_json_success( array( 'saved' => $saved ) );
 	}
 
 	/**

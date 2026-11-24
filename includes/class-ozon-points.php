@@ -47,6 +47,9 @@ class Woo_Ozon_Points {
 			storage_days SMALLINT UNSIGNED NULL,
 			is_bulky TINYINT(1) NOT NULL DEFAULT 0,
 			shipment_method_id BIGINT UNSIGNED NULL,
+			geo_lat DECIMAL(10,6) NULL,
+			geo_lng DECIMAL(10,6) NULL,
+			geocoded_at DATETIME NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (point_id),
 			KEY city (city),
@@ -369,6 +372,204 @@ class Woo_Ozon_Points {
 		}
 
 		return implode( ', ', $parts );
+	}
+
+
+
+	/**
+	 * Сколько пунктов уже уточнено и сколько осталось.
+	 *
+	 * @return array{total:int,done:int,left:int}
+	 */
+	public static function geo_stats(): array {
+		global $wpdb;
+
+		$table = self::table();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- имя таблицы из $wpdb->prefix.
+		$row = $wpdb->get_row( "SELECT COUNT(*) AS total, SUM(geo_lat IS NOT NULL) AS done FROM {$table}", ARRAY_A );
+
+		$total = (int) ( $row['total'] ?? 0 );
+		$done  = (int) ( $row['done'] ?? 0 );
+
+		return array(
+			'total' => $total,
+			'done'  => $done,
+			'left'  => max( 0, $total - $done ),
+		);
+	}
+
+	/**
+	 * Города, где остались пункты без поправки. Сначала те, где работы больше.
+	 *
+	 * @param int $limit Сколько городов вернуть.
+	 * @return array<int, array{city:string,left:int}>
+	 */
+	public static function geo_cities( int $limit = 50 ): array {
+		global $wpdb;
+
+		$table = self::table();
+		$limit = max( 1, min( $limit, 200 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$sql = "SELECT city, COUNT(*) AS total, SUM(geo_lat IS NOT NULL) AS done
+			FROM {$table}
+			WHERE city <> ''
+			GROUP BY city
+			HAVING done < total
+			ORDER BY (total - done) DESC, city ASC
+			LIMIT %d";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $limit ), ARRAY_A );
+
+		$out = array();
+		foreach ( (array) $rows as $row ) {
+			$out[] = array(
+				'city' => (string) $row['city'],
+				'left' => max( 0, (int) $row['total'] - (int) $row['done'] ),
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Пункты города без поправки.
+	 *
+	 * @param string $city  Город.
+	 * @param int    $limit Сколько вернуть.
+	 * @return array<int, array{id:int,address:string}>
+	 */
+	public static function geo_pending( string $city, int $limit = 40 ): array {
+		global $wpdb;
+
+		$table = self::table();
+		$limit = max( 1, min( $limit, 100 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$sql = "SELECT point_id, address FROM {$table} WHERE city = %s AND geo_lat IS NULL ORDER BY address LIMIT %d";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $city, $limit ), ARRAY_A );
+
+		$out = array();
+		foreach ( (array) $rows as $row ) {
+			$out[] = array(
+				'id'      => (int) $row['point_id'],
+				'address' => (string) $row['address'],
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Последние уточнённые пункты.
+	 *
+	 * @param int $limit Сколько вернуть.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function geo_recent( int $limit = 10 ): array {
+		global $wpdb;
+
+		$table = self::table();
+		$limit = max( 1, min( $limit, 50 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$sql = "SELECT point_id, address, geo_lat, geo_lng FROM {$table} WHERE geo_lat IS NOT NULL ORDER BY geocoded_at DESC LIMIT %d";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $limit ), ARRAY_A );
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+
+	/**
+	 * Сбрасывает поправки города: пункты снова пойдут через геокодер.
+	 *
+	 * @param string $city Город.
+	 * @return int Сколько строк сброшено.
+	 */
+	public static function geo_reset_city( string $city ): int {
+		global $wpdb;
+
+		$city = trim( $city );
+
+		if ( '' === $city ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE ' . self::table() . ' SET geo_lat = NULL, geo_lng = NULL, geocoded_at = NULL WHERE city = %s AND geo_lat IS NOT NULL',
+				$city
+			)
+		);
+
+		return false === $result ? 0 : (int) $result;
+	}
+
+	/**
+	 * Все поправки для выгрузки в CSV.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function geo_export(): array {
+		global $wpdb;
+
+		$table = self::table();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$rows = $wpdb->get_results( "SELECT point_id, geo_lat, geo_lng, address FROM {$table} WHERE geo_lat IS NOT NULL ORDER BY point_id", ARRAY_A );
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Сохраняет координаты, полученные геокодированием в браузере.
+	 *
+	 * @param array<int, array{id:int,lat:float,lng:float}> $rows Координаты по пунктам.
+	 * @return int Сколько строк обновлено.
+	 */
+	public static function save_geo( array $rows ): int {
+		global $wpdb;
+
+		$table   = self::table();
+		$now     = current_time( 'mysql', true );
+		$updated = 0;
+
+		foreach ( $rows as $row ) {
+			$id  = isset( $row['id'] ) ? (int) $row['id'] : 0;
+			$lat = isset( $row['lat'] ) ? (float) $row['lat'] : 0.0;
+			$lng = isset( $row['lng'] ) ? (float) $row['lng'] : 0.0;
+
+			// Координаты вне России отбрасываем: геокодер иногда отвечает чужой точкой.
+			if ( $id <= 0 || $lat < 40.0 || $lat > 82.0 || $lng < 19.0 || $lng > 190.0 ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$result = $wpdb->update(
+				$table,
+				array(
+					'geo_lat'     => $lat,
+					'geo_lng'     => $lng,
+					'geocoded_at' => $now,
+				),
+				array( 'point_id' => $id ),
+				array( '%f', '%f', '%s' ),
+				array( '%d' )
+			);
+
+			if ( false !== $result ) {
+				$updated++;
+			}
+		}
+
+		return $updated;
 	}
 
 	/**
