@@ -272,6 +272,20 @@
 
 		openBtn.addEventListener('click', function (event) {
 			event.preventDefault();
+
+			// Без города искать пункты нечего: карта откроется пустой.
+			if (!cityValue()) {
+				setStatus('Сначала укажите город — по нему покажем пункты выдачи.', true);
+
+				var cityField = field('billing_city');
+
+				if (cityField) {
+					cityField.focus();
+				}
+
+				return;
+			}
+
 			modal.removeAttribute('hidden');
 			// Карта в скрытом контейнере получает нулевой размер, поэтому даём браузеру
 			// пересчитать разметку. requestAnimationFrame в фоновой вкладке не срабатывает

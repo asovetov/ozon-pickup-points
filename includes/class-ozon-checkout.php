@@ -122,6 +122,12 @@ class Woo_Ozon_Checkout {
 	 * @param int              $index  Порядковый номер.
 	 */
 	public static function render_rate_block( $method, $index ): void {
+		// Пункт выдачи выбирают на оформлении: в корзине ещё нет города и адреса,
+		// и карта открывалась бы пустой.
+		if ( function_exists( 'is_cart' ) && is_cart() ) {
+			return;
+		}
+
 		unset( $index );
 
 		if ( ! $method instanceof WC_Shipping_Rate || 0 !== strpos( (string) $method->get_id(), 'woo_ozon' ) ) {
