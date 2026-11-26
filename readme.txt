@@ -1,10 +1,10 @@
-=== 3D-Club Delivery to Ozon Pickup Points for WooCommerce ===
+=== Sovetov Ozon Pickup Points for WooCommerce ===
 Contributors: asovetov
 Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.10
+Stable tag: 0.5.0
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -83,11 +83,15 @@ This plugin talks to two third-party services. Both are operated by their owners
 
 == Changelog ==
 
+= 0.5.0 =
+* Renamed to "Sovetov Ozon Pickup Points for WooCommerce" (author is an individual developer, not a store); new slug and text domain.
+* Author and plugin URLs now point to sovetov.spb.ru.
+
 = 0.4.10 =
 * External services section now names both Ozon hosts the plugin calls: api-delivery.ozon.ru for the API and xapi.ozon.ru for the OAuth token.
 
 = 0.4.9 =
-* Renamed to "3D-Club Delivery to Ozon Pickup Points for WooCommerce" and moved to a new slug; text domain updated.
+* Renamed to "Sovetov Ozon Pickup Points for WooCommerce" and moved to a new slug; text domain updated.
 * External services section now lists the exact data sent to Ozon and Yandex, with links to their terms of use and privacy policies.
 * Admin notices are dismissible.
 
