@@ -86,34 +86,34 @@ class Woo_Ozon_Quote {
 		$hits      = (int) get_transient( $limit_key );
 
 		if ( $hits >= 30 ) {
-			wp_send_json_error( array( 'message' => __( 'Слишком много запросов расчёта. Подождите пару минут.', 'ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Слишком много запросов расчёта. Подождите пару минут.', '3d-club-ozon-pickup-points' ) ) );
 		}
 
 		set_transient( $limit_key, $hits + 1, 10 * MINUTE_IN_SECONDS );
 
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-			wp_send_json_error( array( 'message' => __( 'Корзина недоступна.', 'ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Корзина недоступна.', '3d-club-ozon-pickup-points' ) ) );
 		}
 
 		$point_id = isset( $_POST['point_id'] ) ? absint( wp_unslash( $_POST['point_id'] ) ) : 0;
 		$phone    = isset( $_POST['phone'] ) ? self::normalize_phone( sanitize_text_field( wp_unslash( $_POST['phone'] ) ) ) : '';
 
 		if ( $point_id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Пункт выдачи не выбран.', 'ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Пункт выдачи не выбран.', '3d-club-ozon-pickup-points' ) ) );
 		}
 
 		if ( '' === $phone ) {
-			wp_send_json_error( array( 'message' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', '3d-club-ozon-pickup-points' ) ) );
 		}
 
 		$point = Woo_Ozon_Points::get( $point_id );
 
 		if ( null === $point ) {
-			wp_send_json_error( array( 'message' => __( 'Пункт выдачи не найден.', 'ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Пункт выдачи не найден.', '3d-club-ozon-pickup-points' ) ) );
 		}
 
 		if ( WC()->cart->is_empty() ) {
-			wp_send_json_error( array( 'message' => __( 'Корзина пуста.', 'ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Корзина пуста.', '3d-club-ozon-pickup-points' ) ) );
 		}
 
 		$settings = Woo_Ozon_Api::settings();
@@ -326,16 +326,16 @@ class Woo_Ozon_Quote {
 	 */
 	private static function reason_text( string $reason ): string {
 		if ( 'phone' === self::reason_kind( $reason ) ) {
-			return __( 'На этот номер телефона Ozon не доставляет: номер не зарегистрирован в Ozon или заблокирован. Укажите другой номер или выберите доставку другим способом.', 'ozon-pickup-points' );
+			return __( 'На этот номер телефона Ozon не доставляет: номер не зарегистрирован в Ozon или заблокирован. Укажите другой номер или выберите доставку другим способом.', '3d-club-ozon-pickup-points' );
 		}
 
 		if ( '' === trim( $reason ) ) {
-			return __( 'Ozon не вернул стоимость доставки. Попробуйте другой пункт или выберите другой способ доставки.', 'ozon-pickup-points' );
+			return __( 'Ozon не вернул стоимость доставки. Попробуйте другой пункт или выберите другой способ доставки.', '3d-club-ozon-pickup-points' );
 		}
 
 		return sprintf(
 			/* translators: %s: причина отказа от Ozon */
-			__( 'Ozon не доставит этот заказ в выбранный пункт: %s', 'ozon-pickup-points' ),
+			__( 'Ozon не доставит этот заказ в выбранный пункт: %s', '3d-club-ozon-pickup-points' ),
 			$reason
 		);
 	}

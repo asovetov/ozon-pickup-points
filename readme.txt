@@ -1,10 +1,10 @@
-=== Delivery to Ozon Pickup Points for WooCommerce ===
+=== 3D-Club Delivery to Ozon Pickup Points for WooCommerce ===
 Contributors: asovetov
 Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.8
+Stable tag: 0.4.9
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -61,25 +61,32 @@ Label printing, cancellation and returns through the API.
 
 == External services ==
 
-This plugin talks to two third-party services.
+This plugin talks to two third-party services. Both are operated by their owners, not by the plugin author.
 
 = Ozon Delivery API =
 
-* Service: Ozon Delivery API (https://api-delivery.ozon.ru), operated by Ozon.
-* What is sent: the pickup point catalogue request, delivery price calculation, and the shipment itself (recipient phone, parcel size, weight and declared value).
-* When: when the site syncs the pickup point catalogue, when a customer chooses a point on checkout, and when the shop sends an order.
-* Terms: https://docs.ozon.ru/api/ozon-delivery/ and the Ozon seller agreement.
+* Service: Ozon Delivery API at https://xapi.ozon.ru, operated by Ozon. It is used to load the pickup point catalogue, to calculate the delivery price and to create shipments.
+* What is sent: the store's API credentials (Client ID and Client Secret) to obtain an access token; the recipient's phone number; the ID of the selected pickup point; the declared value of the parcel; the parcel dimensions and weight; and the order number inside the parcel description.
+* When: when the store owner refreshes the pickup point catalogue; at checkout, after the customer picks a point and enters a phone number (price calculation, no order is created); when the store owner creates a shipment from the order screen; and during the automatic status sync every 30 minutes.
+* Conditions: nothing is sent to Ozon until the store owner enters API credentials and a customer selects an Ozon pickup point. Browsing the catalogue and the cart does not contact Ozon, because the pickup point list is cached in the store database.
+* Terms of use: https://docs.ozon.ru/legal/terms-of-use/ozon-delivery/
+* Privacy policy: https://docs.ozon.ru/legal/personal-data/privacy-policy/
 
 = Yandex Maps =
 
-* Service: Yandex Maps JavaScript API and Geocoder (https://api-maps.yandex.ru), operated by Yandex.
-* What is sent: the map is loaded only when the customer opens the pickup point map, and the shop's API key is passed with the request. The city typed on checkout is sent to the map service to centre the map.
+* Service: Yandex Maps JavaScript API and Geocoder at https://api-maps.yandex.ru, operated by Yandex. It is used to show pickup points on a map.
+* What is sent: the store's Yandex API key and the city typed at checkout, so the map opens on that city.
 * When: only after the customer clicks "Choose a point on the map".
-* Terms: https://yandex.ru/legal/maps_api/.
-
-Both services are optional in the sense that the plugin works without the map key: without it the customer picks a point from the list.
+* Conditions: the map is optional. Without a Yandex API key the customer picks a point from the list and no request is made to Yandex.
+* Terms of use: https://yandex.ru/legal/maps_api/
+* Privacy policy: https://yandex.ru/legal/confidential/
 
 == Changelog ==
+
+= 0.4.9 =
+* Renamed to "3D-Club Delivery to Ozon Pickup Points for WooCommerce" and moved to a new slug; text domain updated.
+* External services section now lists the exact data sent to Ozon and Yandex, with links to their terms of use and privacy policies.
+* Admin notices are dismissible.
 
 = 0.4.8 =
 * Кнопка выбора пункта больше не появляется в корзине: там ещё нет города, и карта открывалась пустой.
