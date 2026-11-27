@@ -10,11 +10,23 @@
   `profiles.wordpress.org/me/profile/edit/group/3/?screen=svn-password`
 - Код готов к выкладке: версия **0.5.2**, главный файл и text domain — `sovetov-ozon-pickup-points`.
 
+## Опубликовано 27.11.2026
+
+- Версия 0.5.2 в каталоге: https://wordpress.org/plugins/sovetov-ozon-pickup-points/
+- SVN: trunk — r3828857, тег `tags/0.5.2` — r3828858.
+- Проверено: страница отдаёт 200, API каталога показывает `0.5.2`, архив
+  `downloads.wordpress.org/plugin/sovetov-ozon-pickup-points.0.5.2.zip` скачивается (143 КБ).
+- Иконка на странице пока стандартная (пиксельный квадрат) — нужны `assets/icon-256x256.png`
+  и `assets/icon-128x128.png`, баннер `assets/banner-1544x500.png`.
+
 ## Выкладка в каталог
 
 ```bash
-sudo apt install -y subversion        # один раз
-~/proj/ozon-pickup-points/tools/svn-release.sh
+# пароль SVN в файл с правами 600 (в чат не писать)
+install -m 600 /dev/null ~/.secrets/wp-svn
+nano ~/.secrets/wp-svn
+
+~/proj/ozon-pickup-points/tools/svn-release.sh   # ASSUME_YES=1 — без вопросов
 ```
 
 Скрипт делает checkout в `~/svn/sovetov-ozon-pickup-points`, кладёт файлы в `trunk`,

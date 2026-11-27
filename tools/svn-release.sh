@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Выкладка плагина в каталог WordPress.org через SVN.
-# Запускать из терминала: пароль SVN спросит сам (он отдельный от пароля сайта).
 #
-#   sudo apt install -y subversion     # один раз
-#   ~/proj/ozon-pickup-points/tools/svn-release.sh
+# Пароль SVN отдельный от пароля сайта: profiles.wordpress.org → Account & Security → SVN password.
 #
-# Первый запуск сделает checkout, дальше будет только обновлять trunk и ставить тег.
+# Два режима:
+#   1. Пароль лежит в файле (по умолчанию ~/.secrets/wp-svn, права 600) — всё идёт без вопросов:
+#        ~/proj/ozon-pickup-points/tools/svn-release.sh
+#   2. Файла нет — svn спросит пароль сам, в интерактивном терминале.
+#
+# Переменные: ASSUME_YES=1 — не спрашивать подтверждение; SVN_PASS_FILE=путь — свой файл с паролем.
 
 set -euo pipefail
 
@@ -13,6 +16,7 @@ SVN_URL="https://plugins.svn.wordpress.org/sovetov-ozon-pickup-points"
 SVN_USER="asovetov"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="${WORK:-$HOME/svn/sovetov-ozon-pickup-points}"
+PASS_FILE="${SVN_PASS_FILE:-$HOME/.secrets/wp-svn}"
 
 MAIN="$REPO/sovetov-ozon-pickup-points.php"
 VERSION="$(grep -m1 '^ \* Version:' "$MAIN" | sed -E 's/.*Version:[[:space:]]*//' | tr -d '\r')"
@@ -25,15 +29,21 @@ fi
 echo "Плагин: sovetov-ozon-pickup-points"
 echo "Версия: $VERSION"
 echo "Рабочая копия: $WORK"
+if [ -s "$PASS_FILE" ]; then
+	echo "Пароль SVN: из $PASS_FILE"
+else
+	echo "Пароль SVN: файла нет, спрошу интерактивно"
+fi
 echo
 
+# Чтение в каталоге публичное — checkout и update пароль не требуют.
 if [ ! -d "$WORK/.svn" ]; then
-	echo "→ Первый запуск: делаю checkout (спросит логин $SVN_USER и пароль SVN)"
+	echo "→ Первый запуск: checkout"
 	mkdir -p "$(dirname "$WORK")"
-	svn checkout "$SVN_URL" "$WORK" --username "$SVN_USER"
+	svn checkout "$SVN_URL" "$WORK"
 else
 	echo "→ Обновляю рабочую копию"
-	svn update "$WORK" --username "$SVN_USER"
+	svn update "$WORK"
 fi
 
 mkdir -p "$WORK/trunk" "$WORK/tags"
@@ -48,11 +58,12 @@ rsync -a --delete \
 	--exclude 'docs' \
 	--exclude 'node_modules' \
 	--exclude 'svn-tree' \
+	--exclude 'tools' \
 	--exclude 'REVIEW.md' \
 	--exclude 'README.md' \
 	"$REPO/" "$WORK/trunk/"
 
-# удалённые из репозитория файлы надо снять с учёта, иначе коммит ругнётся
+# файлы, которых больше нет в репозитории, надо снять с учёта, иначе коммит ругнётся
 if svn status "$WORK/trunk" | grep -q '^!'; then
 	svn status "$WORK/trunk" | awk '/^!/{ $1=""; sub(/^ /,""); print }' | while IFS= read -r path; do
 		svn rm --force "$path" >/dev/null
@@ -66,22 +77,34 @@ echo "→ Что уедет в каталог:"
 svn status "$WORK" | sed 's/^/   /' | head -60
 echo
 
-read -r -p "Коммитить trunk и ставить тег $VERSION? [y/N] " answer
-case "$answer" in
-	y|Y|да|Да) ;;
-	*) echo "Отменено."; exit 0 ;;
-esac
+if [ "${ASSUME_YES:-0}" != "1" ]; then
+	read -r -p "Коммитить trunk и ставить тег $VERSION? [y/N] " answer
+	case "$answer" in
+		y|Y|да|Да) ;;
+		*) echo "Отменено."; exit 0 ;;
+	esac
+fi
 
-svn commit "$WORK" -m "Release $VERSION" --username "$SVN_USER"
+echo "→ Коммичу trunk"
+if [ -s "$PASS_FILE" ]; then
+	svn commit "$WORK" -m "Release $VERSION" \
+		--username "$SVN_USER" --non-interactive --no-auth-cache --password-from-stdin < "$PASS_FILE"
+else
+	svn commit "$WORK" -m "Release $VERSION" --username "$SVN_USER"
+fi
 
 if svn info "$SVN_URL/tags/$VERSION" >/dev/null 2>&1; then
 	echo "Тег $VERSION уже есть, оставляю как есть."
 else
-	svn copy "$SVN_URL/trunk" "$SVN_URL/tags/$VERSION" \
-		-m "Tag $VERSION" --username "$SVN_USER"
+	echo "→ Ставлю тег $VERSION"
+	if [ -s "$PASS_FILE" ]; then
+		svn copy "$SVN_URL/trunk" "$SVN_URL/tags/$VERSION" -m "Tag $VERSION" \
+			--username "$SVN_USER" --non-interactive --no-auth-cache --password-from-stdin < "$PASS_FILE"
+	else
+		svn copy "$SVN_URL/trunk" "$SVN_URL/tags/$VERSION" -m "Tag $VERSION" --username "$SVN_USER"
+	fi
 fi
 
 echo
 echo "Готово."
-echo "Страница плагина: https://wordpress.org/plugins/sovetov-ozon-pickup-points/"
-echo "Проверить версию: curl -s https://api.wordpress.org/plugins/info/1.0/sovetov-ozon-pickup-points.json | head -c 200"
+echo "Страница: https://wordpress.org/plugins/sovetov-ozon-pickup-points/"
