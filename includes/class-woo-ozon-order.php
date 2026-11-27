@@ -36,17 +36,17 @@ class Woo_Ozon_Order {
 	private const CORE_MAP = array(
 		// «created» и «awaiting_approve» — заявка ещё не подтверждена в кабинете Ozon,
 		// поэтому заказ ждёт, а не уходит в «доставляется».
-		'created'             => 'wc-on-hold',
-		'awaiting_approve'    => 'wc-on-hold',
-		'awaiting_packaging'  => 'wc-processing',
-		'sent'                => 'wc-processing',
-		'delivering'          => 'wc-processing',
-		'ready_for_pickup'    => 'wc-processing',
-		'delivered'           => 'wc-completed',
+		'created'            => 'wc-on-hold',
+		'awaiting_approve'   => 'wc-on-hold',
+		'awaiting_packaging' => 'wc-processing',
+		'sent'               => 'wc-processing',
+		'delivering'         => 'wc-processing',
+		'ready_for_pickup'   => 'wc-processing',
+		'delivered'          => 'wc-completed',
 		// Ozon пишет «canceled» с одной «l», старые ответы — «cancelled».
-		'canceled'            => 'wc-cancelled',
-		'cancelled'           => 'wc-cancelled',
-		'arbitration'         => 'wc-on-hold',
+		'canceled'           => 'wc-cancelled',
+		'cancelled'          => 'wc-cancelled',
+		'arbitration'        => 'wc-on-hold',
 	);
 
 	/**
@@ -91,7 +91,7 @@ class Woo_Ozon_Order {
 	public static function add_schedule( array $schedules ): array {
 		$schedules['woo_ozon_half_hour'] = array(
 			'interval' => 1800,
-			'display'  => __( 'Каждые 30 минут', 'sovetov-ozon-pickup-points' ),
+			'display'  => __( 'Every 30 minutes', 'sovetov-ozon-pickup-points' ),
 		);
 
 		return $schedules;
@@ -129,7 +129,7 @@ class Woo_Ozon_Order {
 		}
 
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			echo '<p>' . esc_html__( 'Недостаточно прав.', 'sovetov-ozon-pickup-points' ) . '</p>';
+			echo '<p>' . esc_html__( 'You do not have permission to do this.', 'sovetov-ozon-pickup-points' ) . '</p>';
 			return;
 		}
 
@@ -143,14 +143,14 @@ class Woo_Ozon_Order {
 		$status = (string) $order->get_meta( self::META_STATUS );
 		$cost   = (string) $order->get_meta( self::META_COST );
 
-		echo '<p><strong>' . esc_html__( 'Пункт выдачи', 'sovetov-ozon-pickup-points' ) . '</strong><br>';
-		echo '' !== $point ? esc_html( $point ) : esc_html__( 'не выбран', 'sovetov-ozon-pickup-points' );
+		echo '<p><strong>' . esc_html__( 'Pickup point', 'sovetov-ozon-pickup-points' ) . '</strong><br>';
+		echo '' !== $point ? esc_html( $point ) : esc_html__( 'not selected', 'sovetov-ozon-pickup-points' );
 		echo '</p>';
 
 		if ( '' !== $number ) {
 			printf(
 				'<p><strong>%s</strong><br>%s</p>',
-				esc_html__( 'Заявка Ozon', 'sovetov-ozon-pickup-points' ),
+				esc_html__( 'Ozon shipment', 'sovetov-ozon-pickup-points' ),
 				esc_html( $number )
 			);
 
@@ -160,8 +160,8 @@ class Woo_Ozon_Order {
 					esc_html(
 						count( $numbers ) > 1
 							/* translators: %d: количество посылок */
-							? sprintf( __( 'Посылки в Ozon (%d мест)', 'sovetov-ozon-pickup-points' ), count( $numbers ) )
-							: __( 'Посылка в Ozon', 'sovetov-ozon-pickup-points' )
+							? sprintf( __( 'Parcels at Ozon (%d places)', 'sovetov-ozon-pickup-points' ), count( $numbers ) )
+							: __( 'Parcel at Ozon', 'sovetov-ozon-pickup-points' )
 					)
 				);
 
@@ -175,7 +175,7 @@ class Woo_Ozon_Order {
 			if ( '' !== $status ) {
 				printf(
 					'<p><strong>%s</strong><br>%s</p>',
-					esc_html__( 'Статус Ozon', 'sovetov-ozon-pickup-points' ),
+					esc_html__( 'Ozon status', 'sovetov-ozon-pickup-points' ),
 					esc_html( $status )
 				);
 			}
@@ -183,7 +183,7 @@ class Woo_Ozon_Order {
 			if ( '' !== $cost ) {
 				printf(
 					'<p><strong>%s</strong><br>%s ₽</p>',
-					esc_html__( 'Стоимость по Ozon', 'sovetov-ozon-pickup-points' ),
+					esc_html__( 'Ozon price', 'sovetov-ozon-pickup-points' ),
 					esc_html( $cost )
 				);
 			}
@@ -192,7 +192,7 @@ class Woo_Ozon_Order {
 		}
 
 		if ( '' === $point ) {
-			echo '<p>' . esc_html__( 'Сначала покупатель должен выбрать пункт выдачи.', 'sovetov-ozon-pickup-points' ) . '</p>';
+			echo '<p>' . esc_html__( 'The customer has to choose a pickup point first.', 'sovetov-ozon-pickup-points' ) . '</p>';
 			return;
 		}
 
@@ -204,7 +204,7 @@ class Woo_Ozon_Order {
 		printf(
 			'<p><a class="button button-primary" href="%s">%s</a></p>',
 			esc_url( $url ),
-			esc_html__( 'Создать заявку в Ozon', 'sovetov-ozon-pickup-points' )
+			esc_html__( 'Create an Ozon shipment', 'sovetov-ozon-pickup-points' )
 		);
 	}
 
@@ -213,7 +213,7 @@ class Woo_Ozon_Order {
 	 */
 	public static function handle_create(): void {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( esc_html__( 'Недостаточно прав.', 'sovetov-ozon-pickup-points' ) );
+			wp_die( esc_html__( 'You do not have permission to do this.', 'sovetov-ozon-pickup-points' ) );
 		}
 
 		$order_id = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : 0;
@@ -222,15 +222,15 @@ class Woo_Ozon_Order {
 
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof WC_Order ) {
-			wp_die( esc_html__( 'Заказ не найден.', 'sovetov-ozon-pickup-points' ) );
+			wp_die( esc_html__( 'Order not found.', 'sovetov-ozon-pickup-points' ) );
 		}
 
 		$result = self::create_shipment( $order );
 
 		$redirect = add_query_arg(
 			array(
-				'post'   => $order_id,
-				'action' => 'edit',
+				'post'     => $order_id,
+				'action'   => 'edit',
 				'woo_ozon' => $result['ok'] ? 'created' : 'error',
 			),
 			admin_url( 'post.php' )
@@ -269,12 +269,18 @@ class Woo_Ozon_Order {
 		);
 	}
 
+	/**
+	 * Создаёт заявку на доставку в Ozon по данным заказа.
+	 *
+	 * @param WC_Order $order Заказ.
+	 * @return array{ok: bool, message: string, postings?: array<int, string>}
+	 */
 	public static function create_shipment( WC_Order $order ): array {
 		$point_id = (int) $order->get_meta( Woo_Ozon_Checkout::META_POINT_ID );
 		if ( $point_id <= 0 ) {
 			return array(
 				'ok'      => false,
-				'message' => __( 'В заказе нет пункта выдачи Ozon.', 'sovetov-ozon-pickup-points' ),
+				'message' => __( 'The order has no Ozon pickup point.', 'sovetov-ozon-pickup-points' ),
 			);
 		}
 
@@ -282,7 +288,7 @@ class Woo_Ozon_Order {
 		if ( null === $point || empty( $point['shipment_method_id'] ) ) {
 			return array(
 				'ok'      => false,
-				'message' => __( 'Пункт выдачи не найден в кэше или у него нет способа доставки.', 'sovetov-ozon-pickup-points' ),
+				'message' => __( 'The pickup point is not in the cache or has no delivery method.', 'sovetov-ozon-pickup-points' ),
 			);
 		}
 
@@ -296,7 +302,7 @@ class Woo_Ozon_Order {
 		if ( empty( $places ) ) {
 			$places = array(
 				array(
-					'label'    => __( 'Место 1', 'sovetov-ozon-pickup-points' ),
+					'label'    => __( 'Place 1', 'sovetov-ozon-pickup-points' ),
 					'length'   => (int) $settings['default_length_mm'],
 					'width'    => (int) $settings['default_width_mm'],
 					'height'   => (int) $settings['default_height_mm'],
@@ -309,7 +315,7 @@ class Woo_Ozon_Order {
 		$number   = 0;
 
 		foreach ( $places as $place ) {
-			$number++;
+			++$number;
 
 			$posting = Woo_Ozon_Api::build_posting(
 				$number,
@@ -325,7 +331,7 @@ class Woo_Ozon_Order {
 			$posting['description'] = mb_substr(
 				sprintf(
 					/* translators: 1: номер заказа, 2: номер места */
-					__( 'Заказ №%1$s, место %2$d', 'sovetov-ozon-pickup-points' ),
+					__( 'Order #%1$s, place %2$d', 'sovetov-ozon-pickup-points' ),
 					$order->get_order_number(),
 					$number
 				),
@@ -375,7 +381,7 @@ class Woo_Ozon_Order {
 		$order->add_order_note(
 			sprintf(
 				/* translators: 1: номер заявки Ozon, 2: номера посылок */
-				__( 'Ozon: заявка создана. Заказ %1$s, посылки: %2$s.', 'sovetov-ozon-pickup-points' ),
+				__( 'Ozon: shipment created. Order %1$s, parcels: %2$s.', 'sovetov-ozon-pickup-points' ),
 				$order_number,
 				implode( ', ', $numbers )
 			)
@@ -383,7 +389,7 @@ class Woo_Ozon_Order {
 
 		return array(
 			'ok'      => true,
-			'message' => __( 'Заявка создана.', 'sovetov-ozon-pickup-points' ),
+			'message' => __( 'Shipment created.', 'sovetov-ozon-pickup-points' ),
 		);
 	}
 
@@ -462,7 +468,7 @@ class Woo_Ozon_Order {
 			$numbers = (array) $order->get_meta( self::META_POSTINGS );
 
 			if ( empty( $numbers ) ) {
-				$single = (string) $order->get_meta( self::META_POSTING_NUMBER );
+				$single  = (string) $order->get_meta( self::META_POSTING_NUMBER );
 				$numbers = '' !== $single ? array( $single ) : array();
 			}
 
@@ -502,7 +508,7 @@ class Woo_Ozon_Order {
 			$all_terminal = ! array_diff( $statuses, self::TERMINAL );
 			$raw          = $all_terminal
 				? ( in_array( 'delivered', $statuses, true ) ? 'delivered' : $statuses[0] )
-				: ( current( array_diff( $statuses, self::TERMINAL ) ) ?: $statuses[0] );
+				: ( current( array_diff( $statuses, self::TERMINAL ) ) ? current( array_diff( $statuses, self::TERMINAL ) ) : $statuses[0] );
 
 			$order->update_meta_data( self::META_STATUS, $raw );
 			$order->save();
@@ -517,7 +523,7 @@ class Woo_Ozon_Order {
 				str_replace( 'wc-', '', $target ),
 				sprintf(
 					/* translators: %s — статус Ozon */
-					__( 'Ozon: статус посылки — %s.', 'sovetov-ozon-pickup-points' ),
+					__( 'Ozon: parcel status — %s.', 'sovetov-ozon-pickup-points' ),
 					$raw
 				)
 			);

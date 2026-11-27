@@ -1,0 +1,252 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Sovetov Ozon Pickup Points for WooCommerce 0.5.3\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sovetov-ozon-pickup-points\n"
+"Language-Team: Russian\n"
+"Last-Translator: Anton Sovetov <anton@sovetov.spb.ru>\n"
+"PO-Revision-Date: 2026-11-27 11:00+0300\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: sovetov-ozon-pickup-points\n"
+
+msgid "%s (price is confirmed after a pickup point is chosen)"
+msgstr "%s (стоимость уточним после выбора пункта)"
+
+msgid "0: free delivery is disabled."
+msgstr "0: бесплатной доставки нет."
+
+msgid "Added to the rate: packaging, handling."
+msgstr "Прибавляется к тарифу: упаковка, обработка."
+
+msgid "Cached: %d points."
+msgstr "В кэше: %d пунктов."
+
+msgid "Calculating delivery…"
+msgstr "Считаем доставку…"
+
+msgid "Choose a point on the map"
+msgstr "Выбрать пункт на карте"
+
+msgid "Choose an Ozon pickup point."
+msgstr "Выберите пункт выдачи Ozon."
+
+msgid "City is not set"
+msgstr "Город не указан"
+
+msgid "Client ID"
+msgstr "Client ID"
+
+msgid "Client Secret"
+msgstr "Client Secret"
+
+msgid "Close the map"
+msgstr "Закрыть карту"
+
+msgid "Could not load the pickup point list."
+msgstr "Не удалось получить список пунктов."
+
+msgid "Create an Ozon shipment"
+msgstr "Создать заявку в Ozon"
+
+msgid "Default height, mm"
+msgstr "Высота по умолчанию, мм"
+
+msgid "Default length, mm"
+msgstr "Длина по умолчанию, мм"
+
+msgid "Default weight, g"
+msgstr "Вес по умолчанию, г"
+
+msgid "Default width, mm"
+msgstr "Ширина по умолчанию, мм"
+
+msgid "Delivery markup, %"
+msgstr "Наценка на доставку, %"
+
+msgid "Delivery to Ozon pickup points. Ozon calculates the price after a pickup point is chosen."
+msgstr "Доставка в пункты выдачи Ozon. Стоимость считает Ozon после выбора пункта выдачи."
+
+msgid "Enter a city or a pickup point address"
+msgstr "Введите город или адрес пункта"
+
+msgid "Enter a phone number: Ozon calculates delivery by the recipient phone number."
+msgstr "Укажите телефон: Ozon считает доставку по номеру получателя."
+
+msgid "Every 30 minutes"
+msgstr "Каждые 30 минут"
+
+msgid "Free from amount, ₽"
+msgstr "Бесплатно от суммы, ₽"
+
+msgid "Get a JavaScript API and Geocoder key"
+msgstr "Получить ключ JavaScript API и Geocoder"
+
+msgid "How the method is named at checkout."
+msgstr "Как метод называется в оформлении заказа."
+
+msgid "Markup, ₽"
+msgstr "Наценка, ₽"
+
+msgid "No pickup point selected."
+msgstr "Пункт выдачи не выбран."
+
+msgid "No pickup points found. Try another city."
+msgstr "Пунктов не нашлось. Попробуйте другой город."
+
+msgid "Not taxable"
+msgstr "Не облагается"
+
+msgid "Order #%1$s, place %2$d"
+msgstr "Заказ №%1$s, место %2$d"
+
+msgid "Order not found."
+msgstr "Заказ не найден."
+
+msgid "Order weight"
+msgstr "Вес заказа"
+
+msgid "Ozon"
+msgstr "Ozon"
+
+msgid "Ozon Delivery"
+msgstr "Ozon Delivery"
+
+msgid "Ozon could not calculate delivery: %s"
+msgstr "Ozon не рассчитал доставку: %s"
+
+msgid "Ozon delivery: %s"
+msgstr "Доставка Ozon: %s"
+
+msgid "Ozon did not return a delivery price. Try another point or choose a different delivery method."
+msgstr "Ozon не вернул стоимость доставки. Попробуйте другой пункт или выберите другой способ доставки."
+
+msgid "Ozon does not deliver to this phone number: it is not registered in Ozon or is blocked. Enter another number or choose a different delivery method."
+msgstr "На этот номер телефона Ozon не доставляет: номер не зарегистрирован в Ozon или заблокирован. Укажите другой номер или выберите доставку другим способом."
+
+msgid "Ozon help: warehouses and delivery methods"
+msgstr "Справка Ozon: склады и методы доставки"
+
+msgid "Ozon issues keys in the seller account: Settings → API keys. Without keys, pricing and shipments do not work, but pickup points can still be cached."
+msgstr "Ключи выдаёт Ozon в личном кабинете продавца: Настройки → API ключи. Без ключей расчёт и создание заявок не работают, но пункты выдачи можно держать в кэше."
+
+msgid "Ozon pickup point"
+msgstr "Ozon, пункт выдачи"
+
+msgid "Ozon price"
+msgstr "Расчёт Ozon"
+
+msgid "Ozon shipment"
+msgstr "Заявка Ozon"
+
+msgid "Ozon status"
+msgstr "Статус Ozon"
+
+msgid "Ozon will not deliver this order to the selected point: %s"
+msgstr "Ozon не доставит этот заказ в выбранный пункт: %s"
+
+msgid "Ozon: parcel status — %s."
+msgstr "Ozon: статус посылки — %s."
+
+msgid "Ozon: pickup points"
+msgstr "Ozon: пункты выдачи"
+
+msgid "Ozon: shipment created. Order %1$s, parcels: %2$s."
+msgstr "Ozon: заявка создана. Заказ %1$s, посылки: %2$s."
+
+msgid "Parcel at Ozon"
+msgstr "Посылка в Ozon"
+
+msgid "Parcels at Ozon (%d places)"
+msgstr "Посылки в Ozon (%d мест)"
+
+msgid "Pickup point"
+msgstr "Пункт выдачи"
+
+msgid "Pickup point not found."
+msgstr "Пункт выдачи не найден."
+
+msgid "Pickup points"
+msgstr "Пункты выдачи"
+
+msgid "Place 1"
+msgstr "Место 1"
+
+msgid "Refresh pickup points"
+msgstr "Обновить пункты выдачи"
+
+msgid "Save"
+msgstr "Сохранить"
+
+msgid "Searching for pickup points…"
+msgstr "Ищем пункты…"
+
+msgid "Seller API documentation"
+msgstr "Документация Seller API"
+
+msgid "Seller account"
+msgstr "Кабинет продавца"
+
+msgid "Seller account → API keys"
+msgstr "Кабинет продавца → API ключи"
+
+msgid "Settings"
+msgstr "Настройки"
+
+msgid "Settings saved."
+msgstr "Настройки сохранены."
+
+msgid "Shipment created."
+msgstr "Заявка создана."
+
+msgid "Tax"
+msgstr "Налог"
+
+msgid "Taxable"
+msgstr "Облагается"
+
+msgid "The cart is empty."
+msgstr "Корзина пуста."
+
+msgid "The cart is not available."
+msgstr "Корзина недоступна."
+
+msgid "The city has changed — choose a pickup point again."
+msgstr "Город изменился — выберите пункт заново."
+
+msgid "The customer has to choose a pickup point first."
+msgstr "Сначала покупатель должен выбрать пункт выдачи."
+
+msgid "The delivery price does not match the selected point. Reload the page and choose a point again."
+msgstr "Стоимость доставки не совпадает с выбранным пунктом. Обновите страницу и выберите пункт заново."
+
+msgid "The map failed to load. Choose a pickup point from the list."
+msgstr "Карта не загрузилась. Выберите пункт списком."
+
+msgid "The order has no Ozon pickup point."
+msgstr "В заказе нет пункта выдачи Ozon."
+
+msgid "The pickup point is not in the cache or has no delivery method."
+msgstr "Пункт выдачи не найден в кэше или у него нет способа доставки."
+
+msgid "This pickup point is no longer available, choose another one."
+msgstr "Этот пункт выдачи больше недоступен, выберите другой."
+
+msgid "Title"
+msgstr "Название"
+
+msgid "Too many price requests. Please wait a couple of minutes."
+msgstr "Слишком много запросов расчёта. Подождите пару минут."
+
+msgid "Where to get keys and delivery settings:"
+msgstr "Куда идти за ключами и настройками доставки:"
+
+msgid "Without a key the map at checkout will not open, and points can only be picked from the list."
+msgstr "Без ключа карта в оформлении не откроется, выбрать пункт можно будет только списком."
+
+msgid "You do not have permission to do this."
+msgstr "Недостаточно прав."
+
+msgid "not selected"
+msgstr "не выбран"

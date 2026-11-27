@@ -3,7 +3,7 @@
  * Plugin Name:       Sovetov Ozon Pickup Points for WooCommerce
  * Plugin URI:        https://github.com/asovetov/ozon-pickup-points
  * Description:       Доставка в пункты выдачи Ozon для WooCommerce: кэш ПВЗ, стоимость от Ozon, создание заявки и статусы. Рассчитан на отправки от юридических лиц.
- * Version:           0.5.2
+ * Version:           0.5.3
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Anton Sovetov
@@ -22,16 +22,17 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WOO_OZON_VERSION', '0.5.2' );
+define( 'WOO_OZON_VERSION', '0.5.3' );
 define( 'WOO_OZON_FILE', __FILE__ );
 define( 'WOO_OZON_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WOO_OZON_URL', plugin_dir_url( __FILE__ ) );
 
-require_once WOO_OZON_DIR . 'includes/class-ozon-api.php';
-require_once WOO_OZON_DIR . 'includes/class-ozon-points.php';
-require_once WOO_OZON_DIR . 'includes/class-ozon-quote.php';
-require_once WOO_OZON_DIR . 'includes/class-ozon-checkout.php';
-require_once WOO_OZON_DIR . 'includes/class-ozon-order.php';
+require_once WOO_OZON_DIR . 'includes/class-woo-ozon-error.php';
+require_once WOO_OZON_DIR . 'includes/class-woo-ozon-api.php';
+require_once WOO_OZON_DIR . 'includes/class-woo-ozon-points.php';
+require_once WOO_OZON_DIR . 'includes/class-woo-ozon-quote.php';
+require_once WOO_OZON_DIR . 'includes/class-woo-ozon-checkout.php';
+require_once WOO_OZON_DIR . 'includes/class-woo-ozon-order.php';
 
 /**
  * Поднимаем части плагина после загрузки WooCommerce.
@@ -48,6 +49,22 @@ add_action(
 		Woo_Ozon_Order::init();
 	}
 );
+
+/**
+ * Подключает переводы из папки languages.
+ *
+ * Языковые пакеты каталога WordPress.org подхватываются сами, но переведённый .mo
+ * внутри плагина WordPress не ищет — его надо подключить вручную, иначе русский
+ * интерфейс не появится до установки языкового пакета.
+ */
+function woo_ozon_load_textdomain(): void {
+	load_plugin_textdomain(
+		'sovetov-ozon-pickup-points',
+		false,
+		dirname( plugin_basename( WOO_OZON_FILE ) ) . '/languages'
+	);
+}
+add_action( 'init', 'woo_ozon_load_textdomain' );
 
 /**
  * Объявляем совместимость с HPOS: заказы хранятся в своих таблицах WooCommerce.
@@ -68,7 +85,7 @@ add_action(
  * @return array<string, string>
  */
 function woo_ozon_register_shipping_method( array $methods ): array {
-	require_once WOO_OZON_DIR . 'includes/class-ozon-shipping-method.php';
+	require_once WOO_OZON_DIR . 'includes/class-woo-ozon-shipping-method.php';
 
 	$methods['woo_ozon'] = 'Woo_Ozon_Shipping_Method';
 
@@ -145,7 +162,8 @@ add_action(
 		update_option( 'woo_ozon_settings', $saved );
 		Woo_Ozon_Api::flush_token();
 
-		wp_safe_redirect( add_query_arg( 'woo-ozon-saved', '1', wp_get_referer() ?: admin_url( 'admin.php?page=ozon-pickup-points' ) ) );
+		$back = wp_get_referer();
+		wp_safe_redirect( add_query_arg( 'woo-ozon-saved', '1', $back ? $back : admin_url( 'admin.php?page=ozon-pickup-points' ) ) );
 		exit;
 	}
 );
@@ -155,7 +173,7 @@ add_action(
  */
 function woo_ozon_render_settings_page(): void {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
-		wp_die( esc_html__( 'Недостаточно прав.', 'sovetov-ozon-pickup-points' ) );
+		wp_die( esc_html__( 'You do not have permission to do this.', 'sovetov-ozon-pickup-points' ) );
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- выбор закладки, данных не меняет.
@@ -169,11 +187,11 @@ function woo_ozon_render_settings_page(): void {
 	$tabs = apply_filters(
 		'woo_ozon_settings_tabs',
 		array(
-			'settings' => __( 'Настройки', 'sovetov-ozon-pickup-points' ),
+			'settings' => __( 'Settings', 'sovetov-ozon-pickup-points' ),
 		)
 	);
 
-	echo '<div class="wrap"><h1>' . esc_html__( 'Ozon: пункты выдачи', 'sovetov-ozon-pickup-points' ) . '</h1>';
+	echo '<div class="wrap"><h1>' . esc_html__( 'Ozon: pickup points', 'sovetov-ozon-pickup-points' ) . '</h1>';
 	echo '<nav class="nav-tab-wrapper" style="margin-bottom:16px">';
 
 	foreach ( $tabs as $key => $label ) {
@@ -202,18 +220,18 @@ function woo_ozon_render_settings_page(): void {
 	$fields = array(
 		'client_id'         => __( 'Client ID', 'sovetov-ozon-pickup-points' ),
 		'client_secret'     => __( 'Client Secret', 'sovetov-ozon-pickup-points' ),
-		'default_weight_g'  => __( 'Вес по умолчанию, г', 'sovetov-ozon-pickup-points' ),
-		'default_length_mm' => __( 'Длина по умолчанию, мм', 'sovetov-ozon-pickup-points' ),
-		'default_width_mm'  => __( 'Ширина по умолчанию, мм', 'sovetov-ozon-pickup-points' ),
-		'default_height_mm' => __( 'Высота по умолчанию, мм', 'sovetov-ozon-pickup-points' ),
-		'markup_percent'    => __( 'Наценка на доставку, %', 'sovetov-ozon-pickup-points' ),
+		'default_weight_g'  => __( 'Default weight, g', 'sovetov-ozon-pickup-points' ),
+		'default_length_mm' => __( 'Default length, mm', 'sovetov-ozon-pickup-points' ),
+		'default_width_mm'  => __( 'Default width, mm', 'sovetov-ozon-pickup-points' ),
+		'default_height_mm' => __( 'Default height, mm', 'sovetov-ozon-pickup-points' ),
+		'markup_percent'    => __( 'Delivery markup, %', 'sovetov-ozon-pickup-points' ),
 	);
 
 	$nonce_action = 'woo_ozon_save_settings';
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- только флаг для показа уведомления, данных не меняет.
 	if ( isset( $_GET['woo-ozon-saved'] ) ) {
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Настройки сохранены.', 'sovetov-ozon-pickup-points' ) . '</p></div>';
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'sovetov-ozon-pickup-points' ) . '</p></div>';
 	}
 
 	$options = Woo_Ozon_Api::settings();
@@ -222,33 +240,33 @@ function woo_ozon_render_settings_page(): void {
 		<p>
 			<?php
 			echo esc_html__(
-				'Ключи выдаёт Ozon в личном кабинете продавца: Настройки → API ключи. Без ключей расчёт и создание заявок не работают, но пункты выдачи можно держать в кэше.',
+				'Ozon issues keys in the seller account: Settings → API keys. Without keys, pricing and shipments do not work, but pickup points can still be cached.',
 				'sovetov-ozon-pickup-points'
 			);
 			?>
 		</p>
-		<p><?php esc_html_e( 'Куда идти за ключами и настройками доставки:', 'sovetov-ozon-pickup-points' ); ?></p>
+		<p><?php esc_html_e( 'Where to get keys and delivery settings:', 'sovetov-ozon-pickup-points' ); ?></p>
 		<ul class="ul-disc">
 			<li>
 				<a href="https://seller.ozon.ru/app/settings/api-keys" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Кабинет продавца → API ключи', 'sovetov-ozon-pickup-points' ); ?>
+					<?php esc_html_e( 'Seller account → API keys', 'sovetov-ozon-pickup-points' ); ?>
 				</a>
 				— Client ID и Client Secret, вкладка Seller API
 			</li>
 			<li>
 				<a href="https://seller.ozon.ru/" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Кабинет продавца', 'sovetov-ozon-pickup-points' ); ?>
+					<?php esc_html_e( 'Seller account', 'sovetov-ozon-pickup-points' ); ?>
 				</a>
 				— раздел FBS → Управление логистикой: склады и методы доставки
 			</li>
 			<li>
 				<a href="https://seller-edu.ozon.ru/libra/rfbs/logistics-settings" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Справка Ozon: склады и методы доставки', 'sovetov-ozon-pickup-points' ); ?>
+					<?php esc_html_e( 'Ozon help: warehouses and delivery methods', 'sovetov-ozon-pickup-points' ); ?>
 				</a>
 			</li>
 			<li>
 				<a href="https://docs.ozon.ru/api/seller/" target="_blank" rel="noopener noreferrer">
-					<?php esc_html_e( 'Документация Seller API', 'sovetov-ozon-pickup-points' ); ?>
+					<?php esc_html_e( 'Seller API documentation', 'sovetov-ozon-pickup-points' ); ?>
 				</a>
 			</li>
 		</ul>
@@ -269,9 +287,9 @@ function woo_ozon_render_settings_page(): void {
 							>
 							<?php if ( 'map_key' === $key ) : ?>
 								<p class="description">
-									<?php echo esc_html__( 'Без ключа карта в оформлении не откроется, выбрать пункт можно будет только списком.', 'sovetov-ozon-pickup-points' ); ?>
+									<?php echo esc_html__( 'Without a key the map at checkout will not open, and points can only be picked from the list.', 'sovetov-ozon-pickup-points' ); ?>
 									<a href="https://developer.tech.yandex.ru/services" target="_blank" rel="noopener">
-										<?php echo esc_html__( 'Получить ключ JavaScript API и Geocoder', 'sovetov-ozon-pickup-points' ); ?>
+										<?php echo esc_html__( 'Get a JavaScript API and Geocoder key', 'sovetov-ozon-pickup-points' ); ?>
 									</a>
 								</p>
 							<?php endif; ?>
@@ -279,15 +297,15 @@ function woo_ozon_render_settings_page(): void {
 					</tr>
 				<?php endforeach; ?>
 			</table>
-			<?php submit_button( __( 'Сохранить', 'sovetov-ozon-pickup-points' ) ); ?>
+			<?php submit_button( __( 'Save', 'sovetov-ozon-pickup-points' ) ); ?>
 		</form>
 
-		<h2><?php echo esc_html__( 'Пункты выдачи', 'sovetov-ozon-pickup-points' ); ?></h2>
+		<h2><?php echo esc_html__( 'Pickup points', 'sovetov-ozon-pickup-points' ); ?></h2>
 		<p>
 			<?php
 			printf(
 				/* translators: %d — количество пунктов в кэше */
-				esc_html__( 'В кэше: %d пунктов.', 'sovetov-ozon-pickup-points' ),
+				esc_html__( 'Cached: %d points.', 'sovetov-ozon-pickup-points' ),
 				(int) Woo_Ozon_Points::count()
 			);
 			?>
@@ -295,7 +313,7 @@ function woo_ozon_render_settings_page(): void {
 		<form method="post">
 			<?php wp_nonce_field( 'woo_ozon_refresh_points', 'woo_ozon_points_nonce' ); ?>
 			<input type="hidden" name="woo_ozon_refresh_points" value="1">
-			<?php submit_button( __( 'Обновить пункты выдачи', 'sovetov-ozon-pickup-points' ), 'secondary' ); ?>
+			<?php submit_button( __( 'Refresh pickup points', 'sovetov-ozon-pickup-points' ), 'secondary' ); ?>
 		</form>
 	</div>
 	<?php
@@ -345,7 +363,7 @@ add_action(
 function woo_ozon_cron_schedules( array $schedules ): array {
 	$schedules['woo_ozon_half_hour'] = array(
 		'interval' => 1800,
-		'display'  => __( 'Каждые 30 минут', 'sovetov-ozon-pickup-points' ),
+		'display'  => __( 'Every 30 minutes', 'sovetov-ozon-pickup-points' ),
 	);
 
 	return $schedules;
@@ -398,7 +416,7 @@ add_action(
 	'admin_notices',
 	static function (): void {
 		$screen = get_current_screen();
-		if ( ! $screen || 'shop_order' !== $screen->id && 'woocommerce_page_wc-orders' !== $screen->id ) {
+		if ( ! $screen || ( 'shop_order' !== $screen->id && 'woocommerce_page_wc-orders' !== $screen->id ) ) {
 			return;
 		}
 

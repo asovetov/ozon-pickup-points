@@ -1,0 +1,250 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Sovetov Ozon Pickup Points for WooCommerce 0.5.3\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sovetov-ozon-pickup-points\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: sovetov-ozon-pickup-points\n"
+
+msgid "%s (price is confirmed after a pickup point is chosen)"
+msgstr ""
+
+msgid "0: free delivery is disabled."
+msgstr ""
+
+msgid "Added to the rate: packaging, handling."
+msgstr ""
+
+msgid "Cached: %d points."
+msgstr ""
+
+msgid "Calculating delivery…"
+msgstr ""
+
+msgid "Choose a point on the map"
+msgstr ""
+
+msgid "Choose an Ozon pickup point."
+msgstr ""
+
+msgid "City is not set"
+msgstr ""
+
+msgid "Client ID"
+msgstr ""
+
+msgid "Client Secret"
+msgstr ""
+
+msgid "Close the map"
+msgstr ""
+
+msgid "Could not load the pickup point list."
+msgstr ""
+
+msgid "Create an Ozon shipment"
+msgstr ""
+
+msgid "Default height, mm"
+msgstr ""
+
+msgid "Default length, mm"
+msgstr ""
+
+msgid "Default weight, g"
+msgstr ""
+
+msgid "Default width, mm"
+msgstr ""
+
+msgid "Delivery markup, %"
+msgstr ""
+
+msgid "Delivery to Ozon pickup points. Ozon calculates the price after a pickup point is chosen."
+msgstr ""
+
+msgid "Enter a city or a pickup point address"
+msgstr ""
+
+msgid "Enter a phone number: Ozon calculates delivery by the recipient phone number."
+msgstr ""
+
+msgid "Every 30 minutes"
+msgstr ""
+
+msgid "Free from amount, ₽"
+msgstr ""
+
+msgid "Get a JavaScript API and Geocoder key"
+msgstr ""
+
+msgid "How the method is named at checkout."
+msgstr ""
+
+msgid "Markup, ₽"
+msgstr ""
+
+msgid "No pickup point selected."
+msgstr ""
+
+msgid "No pickup points found. Try another city."
+msgstr ""
+
+msgid "Not taxable"
+msgstr ""
+
+msgid "Order #%1$s, place %2$d"
+msgstr ""
+
+msgid "Order not found."
+msgstr ""
+
+msgid "Order weight"
+msgstr ""
+
+msgid "Ozon"
+msgstr ""
+
+msgid "Ozon Delivery"
+msgstr ""
+
+msgid "Ozon could not calculate delivery: %s"
+msgstr ""
+
+msgid "Ozon delivery: %s"
+msgstr ""
+
+msgid "Ozon did not return a delivery price. Try another point or choose a different delivery method."
+msgstr ""
+
+msgid "Ozon does not deliver to this phone number: it is not registered in Ozon or is blocked. Enter another number or choose a different delivery method."
+msgstr ""
+
+msgid "Ozon help: warehouses and delivery methods"
+msgstr ""
+
+msgid "Ozon issues keys in the seller account: Settings → API keys. Without keys, pricing and shipments do not work, but pickup points can still be cached."
+msgstr ""
+
+msgid "Ozon pickup point"
+msgstr ""
+
+msgid "Ozon price"
+msgstr ""
+
+msgid "Ozon shipment"
+msgstr ""
+
+msgid "Ozon status"
+msgstr ""
+
+msgid "Ozon will not deliver this order to the selected point: %s"
+msgstr ""
+
+msgid "Ozon: parcel status — %s."
+msgstr ""
+
+msgid "Ozon: pickup points"
+msgstr ""
+
+msgid "Ozon: shipment created. Order %1$s, parcels: %2$s."
+msgstr ""
+
+msgid "Parcel at Ozon"
+msgstr ""
+
+msgid "Parcels at Ozon (%d places)"
+msgstr ""
+
+msgid "Pickup point"
+msgstr ""
+
+msgid "Pickup point not found."
+msgstr ""
+
+msgid "Pickup points"
+msgstr ""
+
+msgid "Place 1"
+msgstr ""
+
+msgid "Refresh pickup points"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Searching for pickup points…"
+msgstr ""
+
+msgid "Seller API documentation"
+msgstr ""
+
+msgid "Seller account"
+msgstr ""
+
+msgid "Seller account → API keys"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Settings saved."
+msgstr ""
+
+msgid "Shipment created."
+msgstr ""
+
+msgid "Tax"
+msgstr ""
+
+msgid "Taxable"
+msgstr ""
+
+msgid "The cart is empty."
+msgstr ""
+
+msgid "The cart is not available."
+msgstr ""
+
+msgid "The city has changed — choose a pickup point again."
+msgstr ""
+
+msgid "The customer has to choose a pickup point first."
+msgstr ""
+
+msgid "The delivery price does not match the selected point. Reload the page and choose a point again."
+msgstr ""
+
+msgid "The map failed to load. Choose a pickup point from the list."
+msgstr ""
+
+msgid "The order has no Ozon pickup point."
+msgstr ""
+
+msgid "The pickup point is not in the cache or has no delivery method."
+msgstr ""
+
+msgid "This pickup point is no longer available, choose another one."
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "Too many price requests. Please wait a couple of minutes."
+msgstr ""
+
+msgid "Where to get keys and delivery settings:"
+msgstr ""
+
+msgid "Without a key the map at checkout will not open, and points can only be picked from the list."
+msgstr ""
+
+msgid "You do not have permission to do this."
+msgstr ""
+
+msgid "not selected"
+msgstr ""

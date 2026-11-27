@@ -59,6 +59,7 @@ rsync -a --delete \
 	--exclude 'node_modules' \
 	--exclude 'svn-tree' \
 	--exclude 'tools' \
+	--exclude 'wp-assets' \
 	--exclude 'REVIEW.md' \
 	--exclude 'README.md' \
 	"$REPO/" "$WORK/trunk/"
@@ -71,6 +72,14 @@ if svn status "$WORK/trunk" | grep -q '^!'; then
 fi
 
 svn add --force "$WORK/trunk" >/dev/null
+
+# баннеры и иконки каталога живут в assets/ и в архив плагина не входят
+if [ -d "$REPO/wp-assets" ] && [ -n "$(ls -A "$REPO/wp-assets" 2>/dev/null)" ]; then
+	echo "→ Кладу иконки и баннеры в assets/"
+	mkdir -p "$WORK/assets"
+	rsync -a --delete "$REPO/wp-assets/" "$WORK/assets/"
+	svn add --force "$WORK/assets" >/dev/null
+fi
 
 echo
 echo "→ Что уедет в каталог:"

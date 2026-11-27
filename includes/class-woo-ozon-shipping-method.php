@@ -27,7 +27,7 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 		$this->id                 = 'woo_ozon';
 		$this->instance_id        = absint( $instance_id );
 		$this->method_title       = __( 'Ozon', 'sovetov-ozon-pickup-points' );
-		$this->method_description = __( 'Доставка в пункты выдачи Ozon. Стоимость считает Ozon после выбора пункта выдачи.', 'sovetov-ozon-pickup-points' );
+		$this->method_description = __( 'Delivery to Ozon pickup points. Ozon calculates the price after a pickup point is chosen.', 'sovetov-ozon-pickup-points' );
 		$this->supports           = array( 'shipping-zones', 'instance-settings', 'instance-settings-modal' );
 
 		$this->init();
@@ -38,34 +38,34 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 	 */
 	public function init(): void {
 		$this->instance_form_fields = array(
-			'title'       => array(
-				'title'       => __( 'Название', 'sovetov-ozon-pickup-points' ),
+			'title'      => array(
+				'title'       => __( 'Title', 'sovetov-ozon-pickup-points' ),
 				'type'        => 'text',
-				'description' => __( 'Как метод называется в оформлении заказа.', 'sovetov-ozon-pickup-points' ),
-				'default'     => __( 'Ozon, пункт выдачи', 'sovetov-ozon-pickup-points' ),
+				'description' => __( 'How the method is named at checkout.', 'sovetov-ozon-pickup-points' ),
+				'default'     => __( 'Ozon pickup point', 'sovetov-ozon-pickup-points' ),
 				'desc_tip'    => true,
 			),
-			'tax_status'  => array(
-				'title'   => __( 'Налог', 'sovetov-ozon-pickup-points' ),
+			'tax_status' => array(
+				'title'   => __( 'Tax', 'sovetov-ozon-pickup-points' ),
 				'type'    => 'select',
 				'default' => 'taxable',
 				'options' => array(
-					'taxable' => __( 'Облагается', 'sovetov-ozon-pickup-points' ),
-					'none'    => __( 'Не облагается', 'sovetov-ozon-pickup-points' ),
+					'taxable' => __( 'Taxable', 'sovetov-ozon-pickup-points' ),
+					'none'    => __( 'Not taxable', 'sovetov-ozon-pickup-points' ),
 				),
 			),
-			'free_min'    => array(
-				'title'       => __( 'Бесплатно от суммы, ₽', 'sovetov-ozon-pickup-points' ),
+			'free_min'   => array(
+				'title'       => __( 'Free from amount, ₽', 'sovetov-ozon-pickup-points' ),
 				'type'        => 'number',
 				'default'     => '0',
-				'description' => __( '0: бесплатной доставки нет.', 'sovetov-ozon-pickup-points' ),
+				'description' => __( '0: free delivery is disabled.', 'sovetov-ozon-pickup-points' ),
 				'desc_tip'    => true,
 			),
-			'markup'      => array(
-				'title'       => __( 'Наценка, ₽', 'sovetov-ozon-pickup-points' ),
+			'markup'     => array(
+				'title'       => __( 'Markup, ₽', 'sovetov-ozon-pickup-points' ),
 				'type'        => 'number',
 				'default'     => '0',
-				'description' => __( 'Прибавляется к тарифу: упаковка, обработка.', 'sovetov-ozon-pickup-points' ),
+				'description' => __( 'Added to the rate: packaging, handling.', 'sovetov-ozon-pickup-points' ),
 				'desc_tip'    => true,
 			),
 		);
@@ -73,8 +73,10 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 		$this->init_settings();
 
 		$this->enabled    = 'yes';
-		$this->title      = (string) ( $this->get_option( 'title' ) ?: __( 'Ozon, пункт выдачи', 'sovetov-ozon-pickup-points' ) );
-		$this->tax_status = (string) ( $this->get_option( 'tax_status' ) ?: 'taxable' );
+		$title            = $this->get_option( 'title' );
+		$this->title      = (string) ( $title ? $title : __( 'Ozon pickup point', 'sovetov-ozon-pickup-points' ) );
+		$tax_status       = $this->get_option( 'tax_status' );
+		$this->tax_status = (string) ( $tax_status ? $tax_status : 'taxable' );
 
 		add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
 	}
@@ -121,13 +123,13 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 					'id'        => $this->get_rate_id(),
 					'label'     => sprintf(
 						/* translators: %s: название способа доставки */
-						__( '%s (стоимость уточним после выбора пункта)', 'sovetov-ozon-pickup-points' ),
+						__( '%s (price is confirmed after a pickup point is chosen)', 'sovetov-ozon-pickup-points' ),
 						$this->title
 					),
 					'cost'      => 0,
 					'package'   => $package,
 					'meta_data' => array(
-						__( 'Вес заказа', 'sovetov-ozon-pickup-points' ) => wc_format_weight( $weight ),
+						__( 'Order weight', 'sovetov-ozon-pickup-points' ) => wc_format_weight( $weight ),
 					),
 				)
 			);
@@ -149,7 +151,7 @@ class Woo_Ozon_Shipping_Method extends WC_Shipping_Method {
 				'cost'      => max( 0, $cost ),
 				'package'   => $package,
 				'meta_data' => array(
-					__( 'Расчёт Ozon', 'sovetov-ozon-pickup-points' ) => wc_format_weight( $weight ),
+					__( 'Ozon price', 'sovetov-ozon-pickup-points' ) => wc_format_weight( $weight ),
 				),
 			)
 		);

@@ -70,7 +70,7 @@ class Woo_Ozon_Points {
 		if ( is_string( $column ) && '' !== $column && false === stripos( $column, 'bigint' ) ) {
 			// Имя таблицы собрано из $wpdb->prefix, подставлять его в prepare() нечем.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-			$wpdb->query( "ALTER TABLE " . self::table() . ' MODIFY shipment_method_id BIGINT UNSIGNED NULL' );
+			$wpdb->query( 'ALTER TABLE ' . self::table() . ' MODIFY shipment_method_id BIGINT UNSIGNED NULL' );
 		}
 	}
 
@@ -194,6 +194,7 @@ class Woo_Ozon_Points {
 	 *
 	 * @param int[] $ids Идентификаторы пунктов, не больше 100.
 	 * @return array<int, array<string, mixed>>
+	 * @throws Woo_Ozon_Error Если Ozon отвечает ошибкой, кроме 404.
 	 */
 	private static function info_resilient( array $ids ): array {
 		if ( empty( $ids ) ) {
@@ -242,7 +243,7 @@ class Woo_Ozon_Points {
 		$ids     = array();
 		$methods = array();
 		$cursor  = '';
-		$pages  = 0;
+		$pages   = 0;
 
 		try {
 			do {
@@ -256,13 +257,13 @@ class Woo_Ozon_Points {
 						continue;
 					}
 
-					$id            = (int) $point['delivery_point_id'];
-					$ids[]         = $id;
+					$id             = (int) $point['delivery_point_id'];
+					$ids[]          = $id;
 					$methods[ $id ] = isset( $point['shipment_method_ids'][0] ) ? (int) $point['shipment_method_ids'][0] : 0;
 				}
 
 				$cursor = isset( $page['next_cursor'] ) ? (string) $page['next_cursor'] : '';
-				$pages++;
+				++$pages;
 
 				// Защита от бесконечной пагинации: 200 страниц по 1000 — это 200 000 пунктов.
 				if ( $pages > 200 ) {
@@ -323,7 +324,7 @@ class Woo_Ozon_Points {
 						array( '%d', '%s', '%s', '%s', '%f', '%f', '%s', '%d', '%d', '%d', '%d', '%s' )
 					);
 
-					$updated++;
+					++$updated;
 				}
 			}
 		} catch ( Woo_Ozon_Error $e ) {
@@ -472,6 +473,7 @@ class Woo_Ozon_Points {
 	/**
 	 * Города, по которым есть пункты.
 	 *
+	 * @param int $limit Сколько городов вернуть.
 	 * @return string[]
 	 */
 	public static function cities( int $limit = 50 ): array {

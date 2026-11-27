@@ -83,37 +83,37 @@ class Woo_Ozon_Quote {
 		// и держит воркеры PHP долгими запросами.
 		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$limit_key   = 'woo_ozon_q_' . md5( $remote_addr );
-		$hits      = (int) get_transient( $limit_key );
+		$hits        = (int) get_transient( $limit_key );
 
 		if ( $hits >= 30 ) {
-			wp_send_json_error( array( 'message' => __( 'Слишком много запросов расчёта. Подождите пару минут.', 'sovetov-ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Too many price requests. Please wait a couple of minutes.', 'sovetov-ozon-pickup-points' ) ) );
 		}
 
 		set_transient( $limit_key, $hits + 1, 10 * MINUTE_IN_SECONDS );
 
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-			wp_send_json_error( array( 'message' => __( 'Корзина недоступна.', 'sovetov-ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'The cart is not available.', 'sovetov-ozon-pickup-points' ) ) );
 		}
 
 		$point_id = isset( $_POST['point_id'] ) ? absint( wp_unslash( $_POST['point_id'] ) ) : 0;
 		$phone    = isset( $_POST['phone'] ) ? self::normalize_phone( sanitize_text_field( wp_unslash( $_POST['phone'] ) ) ) : '';
 
 		if ( $point_id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Пункт выдачи не выбран.', 'sovetov-ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'No pickup point selected.', 'sovetov-ozon-pickup-points' ) ) );
 		}
 
 		if ( '' === $phone ) {
-			wp_send_json_error( array( 'message' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'sovetov-ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Enter a phone number: Ozon calculates delivery by the recipient phone number.', 'sovetov-ozon-pickup-points' ) ) );
 		}
 
 		$point = Woo_Ozon_Points::get( $point_id );
 
 		if ( null === $point ) {
-			wp_send_json_error( array( 'message' => __( 'Пункт выдачи не найден.', 'sovetov-ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Pickup point not found.', 'sovetov-ozon-pickup-points' ) ) );
 		}
 
 		if ( WC()->cart->is_empty() ) {
-			wp_send_json_error( array( 'message' => __( 'Корзина пуста.', 'sovetov-ozon-pickup-points' ) ) );
+			wp_send_json_error( array( 'message' => __( 'The cart is empty.', 'sovetov-ozon-pickup-points' ) ) );
 		}
 
 		$settings = Woo_Ozon_Api::settings();
@@ -178,9 +178,9 @@ class Woo_Ozon_Quote {
 
 		wp_send_json_success(
 			array(
-				'cost'     => $cost,
+				'cost'      => $cost,
 				'formatted' => wp_strip_all_tags( wc_price( $cost ) ),
-				'point'    => $point_id,
+				'point'     => $point_id,
 			)
 		);
 	}
@@ -286,7 +286,7 @@ class Woo_Ozon_Quote {
 	/**
 	 * Достаёт значение по пути.
 	 *
-	 * @param array<string, mixed> $data Ответ API.
+	 * @param array<string, mixed>   $data Ответ API.
 	 * @param array<int, string|int> $path Путь.
 	 * @return mixed
 	 */
@@ -326,16 +326,16 @@ class Woo_Ozon_Quote {
 	 */
 	private static function reason_text( string $reason ): string {
 		if ( 'phone' === self::reason_kind( $reason ) ) {
-			return __( 'На этот номер телефона Ozon не доставляет: номер не зарегистрирован в Ozon или заблокирован. Укажите другой номер или выберите доставку другим способом.', 'sovetov-ozon-pickup-points' );
+			return __( 'Ozon does not deliver to this phone number: it is not registered in Ozon or is blocked. Enter another number or choose a different delivery method.', 'sovetov-ozon-pickup-points' );
 		}
 
 		if ( '' === trim( $reason ) ) {
-			return __( 'Ozon не вернул стоимость доставки. Попробуйте другой пункт или выберите другой способ доставки.', 'sovetov-ozon-pickup-points' );
+			return __( 'Ozon did not return a delivery price. Try another point or choose a different delivery method.', 'sovetov-ozon-pickup-points' );
 		}
 
 		return sprintf(
 			/* translators: %s: причина отказа от Ozon */
-			__( 'Ozon не доставит этот заказ в выбранный пункт: %s', 'sovetov-ozon-pickup-points' ),
+			__( 'Ozon will not deliver this order to the selected point: %s', 'sovetov-ozon-pickup-points' ),
 			$reason
 		);
 	}

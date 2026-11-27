@@ -32,7 +32,7 @@ class Woo_Ozon_Checkout {
 	 * Подключает хуки.
 	 */
 	public static function init(): void {
-		// Блок выбора пункта живёт прямо в строке тарифа — как у СДЭК.
+		// Блок выбора пункта живёт прямо в строке тарифа, рядом с остальными способами.
 		add_action( 'woocommerce_after_shipping_rate', array( __CLASS__, 'render_rate_block' ), 10, 2 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 		add_action( 'wp_ajax_woo_ozon_points', array( __CLASS__, 'ajax_points' ) );
@@ -68,20 +68,20 @@ class Woo_Ozon_Checkout {
 				'nonce'      => wp_create_nonce( 'woo_ozon_points' ),
 				'quoteNonce' => wp_create_nonce( 'woo_ozon_quote' ),
 				'mapKey'     => Woo_Ozon_Api::map_key(),
-				'i18n'    => array(
-					'empty'   => __( 'Введите город или адрес пункта', 'sovetov-ozon-pickup-points' ),
-					'loading' => __( 'Ищем пункты…', 'sovetov-ozon-pickup-points' ),
-					'none'    => __( 'Пунктов не нашлось. Попробуйте другой город.', 'sovetov-ozon-pickup-points' ),
-					'error'   => __( 'Не удалось получить список пунктов.', 'sovetov-ozon-pickup-points' ),
-					'quoting' => __( 'Считаем доставку…', 'sovetov-ozon-pickup-points' ),
+				'i18n'       => array(
+					'empty'       => __( 'Enter a city or a pickup point address', 'sovetov-ozon-pickup-points' ),
+					'loading'     => __( 'Searching for pickup points…', 'sovetov-ozon-pickup-points' ),
+					'none'        => __( 'No pickup points found. Try another city.', 'sovetov-ozon-pickup-points' ),
+					'error'       => __( 'Could not load the pickup point list.', 'sovetov-ozon-pickup-points' ),
+					'quoting'     => __( 'Calculating delivery…', 'sovetov-ozon-pickup-points' ),
 					/* translators: %s: сумма доставки. */
-					'quote'   => __( 'Доставка Ozon: %s', 'sovetov-ozon-pickup-points' ),
+					'quote'       => __( 'Ozon delivery: %s', 'sovetov-ozon-pickup-points' ),
 					/* translators: %s: текст ошибки от Ozon. */
-					'quoteFail' => __( 'Ozon не рассчитал доставку: %s', 'sovetov-ozon-pickup-points' ),
-					'needPhone' => __( 'Укажите телефон: Ozon считает доставку по номеру получателя.', 'sovetov-ozon-pickup-points' ),
-					'mapNoCity' => __( 'Город не указан', 'sovetov-ozon-pickup-points' ),
-					'cityChanged' => __( 'Город изменился — выберите пункт заново.', 'sovetov-ozon-pickup-points' ),
-					'mapFail'   => __( 'Карта не загрузилась. Выберите пункт списком.', 'sovetov-ozon-pickup-points' ),
+					'quoteFail'   => __( 'Ozon could not calculate delivery: %s', 'sovetov-ozon-pickup-points' ),
+					'needPhone'   => __( 'Enter a phone number: Ozon calculates delivery by the recipient phone number.', 'sovetov-ozon-pickup-points' ),
+					'mapNoCity'   => __( 'City is not set', 'sovetov-ozon-pickup-points' ),
+					'cityChanged' => __( 'The city has changed — choose a pickup point again.', 'sovetov-ozon-pickup-points' ),
+					'mapFail'     => __( 'The map failed to load. Choose a pickup point from the list.', 'sovetov-ozon-pickup-points' ),
 				),
 			)
 		);
@@ -140,7 +140,7 @@ class Woo_Ozon_Checkout {
 		?>
 		<div class="woo-ozon-pvz" id="woo-ozon-pvz">
 			<button type="button" class="button open-pvz-btn" id="woo-ozon-map-open">
-				<?php echo esc_html__( 'Выбрать пункт на карте', 'sovetov-ozon-pickup-points' ); ?>
+				<?php echo esc_html__( 'Choose a point on the map', 'sovetov-ozon-pickup-points' ); ?>
 			</button>
 
 			<p class="woo-ozon-pvz__chosen" id="woo-ozon-chosen"<?php echo '' === $selected_label ? ' hidden' : ''; ?>>
@@ -158,7 +158,7 @@ class Woo_Ozon_Checkout {
 		<div class="woo-ozon-map" id="woo-ozon-map-modal" hidden>
 			<div class="woo-ozon-map__bar">
 				<strong id="woo-ozon-map-city"></strong>
-				<button type="button" class="woo-ozon-map__close" id="woo-ozon-map-close" aria-label="<?php echo esc_attr__( 'Закрыть карту', 'sovetov-ozon-pickup-points' ); ?>">×</button>
+				<button type="button" class="woo-ozon-map__close" id="woo-ozon-map-close" aria-label="<?php echo esc_attr__( 'Close the map', 'sovetov-ozon-pickup-points' ); ?>">×</button>
 			</div>
 			<div class="woo-ozon-map__canvas" id="woo-ozon-map-canvas"></div>
 		</div>
@@ -248,7 +248,7 @@ class Woo_Ozon_Checkout {
 		$point_id = isset( $_POST['woo_ozon_point_id'] ) ? absint( wp_unslash( $_POST['woo_ozon_point_id'] ) ) : 0;
 
 		if ( $point_id <= 0 ) {
-			wc_add_notice( __( 'Выберите пункт выдачи Ozon.', 'sovetov-ozon-pickup-points' ), 'error' );
+			wc_add_notice( __( 'Choose an Ozon pickup point.', 'sovetov-ozon-pickup-points' ), 'error' );
 			return;
 		}
 
@@ -257,7 +257,7 @@ class Woo_Ozon_Checkout {
 
 		if ( $quoted_point !== (string) $point_id ) {
 			wc_add_notice(
-				__( 'Стоимость доставки не совпадает с выбранным пунктом. Обновите страницу и выберите пункт заново.', 'sovetov-ozon-pickup-points' ),
+				__( 'The delivery price does not match the selected point. Reload the page and choose a point again.', 'sovetov-ozon-pickup-points' ),
 				'error'
 			);
 
@@ -265,14 +265,14 @@ class Woo_Ozon_Checkout {
 		}
 
 		if ( null === Woo_Ozon_Points::get( $point_id ) ) {
-			wc_add_notice( __( 'Этот пункт выдачи больше недоступен, выберите другой.', 'sovetov-ozon-pickup-points' ), 'error' );
+			wc_add_notice( __( 'This pickup point is no longer available, choose another one.', 'sovetov-ozon-pickup-points' ), 'error' );
 		}
 	}
 
 	/**
 	 * Сохраняет пункт в заказ.
 	 *
-	 * @param WC_Order $order Заказ.
+	 * @param WC_Order             $order Заказ.
 	 * @param array<string, mixed> $data Данные оформления.
 	 */
 	public static function save_to_order( WC_Order $order, array $data ): void {
@@ -312,7 +312,7 @@ class Woo_Ozon_Checkout {
 
 		printf(
 			'<p><strong>%s</strong><br>%s</p>',
-			esc_html__( 'Пункт выдачи Ozon', 'sovetov-ozon-pickup-points' ),
+			esc_html__( 'Ozon pickup point', 'sovetov-ozon-pickup-points' ),
 			esc_html( $label )
 		);
 	}
@@ -321,8 +321,8 @@ class Woo_Ozon_Checkout {
 	 * Добавляет пункт в письма о заказе.
 	 *
 	 * @param array<string, array<string, string>> $fields Поля письма.
-	 * @param bool                                  $sent_to_admin Письмо админу.
-	 * @param WC_Order                              $order Заказ.
+	 * @param bool                                 $sent_to_admin Письмо админу.
+	 * @param WC_Order                             $order Заказ.
 	 * @return array<string, array<string, string>>
 	 */
 	public static function email_fields( array $fields, bool $sent_to_admin, WC_Order $order ): array {
@@ -330,7 +330,7 @@ class Woo_Ozon_Checkout {
 
 		if ( '' !== $label ) {
 			$fields['woo_ozon_point'] = array(
-				'label' => __( 'Пункт выдачи Ozon', 'sovetov-ozon-pickup-points' ),
+				'label' => __( 'Ozon pickup point', 'sovetov-ozon-pickup-points' ),
 				'value' => $label,
 			);
 		}

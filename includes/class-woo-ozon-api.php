@@ -17,38 +17,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Ошибка Ozon.
- */
-class Woo_Ozon_Error extends Exception {
-
-	/**
-	 * Код ответа HTTP.
-	 *
-	 * @var int
-	 */
-	public int $status_code;
-
-	/**
-	 * Тело ответа.
-	 *
-	 * @var mixed
-	 */
-	public $details;
-
-	/**
-	 * Конструктор.
-	 *
-	 * @param string $message Текст ошибки.
-	 * @param int    $status_code Код HTTP.
-	 * @param mixed  $details Тело ответа.
-	 */
-	public function __construct( string $message, int $status_code = 0, $details = null ) {
-		parent::__construct( $message );
-		$this->status_code = $status_code;
-		$this->details     = $details;
-	}
-}
+require_once __DIR__ . '/class-woo-ozon-error.php';
 
 /**
  * HTTP-клиент Ozon.
@@ -102,7 +71,7 @@ class Woo_Ozon_Api {
 	/**
 	 * Ключ JavaScript API Яндекс.Карт.
 	 *
-	 * Свои настройки в приоритете: у магазина без СДЭК брать ключ неоткуда.
+	 * Свои настройки в приоритете: иначе брать ключ неоткуда.
 	 */
 	public static function map_key(): string {
 		$settings = self::settings();
@@ -301,6 +270,8 @@ class Woo_Ozon_Api {
 	 *
 	 * @param string $base Текущий URL.
 	 * @param string $location Значение заголовка Location.
+	 * @return string Абсолютный адрес.
+	 * @throws Woo_Ozon_Error Если редирект уводит на посторонний хост.
 	 */
 	private static function resolve_url( string $base, string $location ): string {
 		if ( preg_match( '#^https?://#i', $location ) ) {
@@ -385,9 +356,9 @@ class Woo_Ozon_Api {
 		$data = self::post(
 			'/v1/delivery-point/check-availability',
 			array(
-				'delivery_point_ids'  => array_values( array_map( 'absint', $point_ids ) ),
-				'shipment_method_id'  => $shipment_method_id,
-				'postings'            => array( $posting ),
+				'delivery_point_ids' => array_values( array_map( 'absint', $point_ids ) ),
+				'shipment_method_id' => $shipment_method_id,
+				'postings'           => array( $posting ),
 			)
 		);
 
@@ -427,14 +398,13 @@ class Woo_Ozon_Api {
 	/**
 	 * Объект посылки для расчёта и создания заявки.
 	 *
-	 * @param int    $request_id Номер посылки в заявке.
+	 * @param int    $request_id         Номер посылки в заявке.
 	 * @param int    $shipment_method_id Способ доставки пункта.
-	 * @param string $cutoff_at Время отсечки.
-	 * @param string $declared_value Объявленная стоимость.
-	 * @param int    $weight_g Вес, г.
-	 * @param int    $length_mm Длина, мм.
-	 * @param int    $width_mm Ширина, мм.
-	 * @param int    $height_mm Высота, мм.
+	 * @param string $declared_value     Объявленная стоимость.
+	 * @param int    $weight_g           Вес, г.
+	 * @param int    $length_mm          Длина, мм.
+	 * @param int    $width_mm           Ширина, мм.
+	 * @param int    $height_mm          Высота, мм.
 	 * @return array<string, mixed>
 	 */
 	public static function build_posting(
@@ -449,17 +419,17 @@ class Woo_Ozon_Api {
 		// cutoff_at не отправляем: Ozon возвращает свой в ответе на checkout, а строка
 		// в чужом формате валит весь запрос («JSON value could not be converted»).
 		return array(
-			'request_id'        => $request_id,
+			'request_id'         => $request_id,
 			'shipment_method_id' => $shipment_method_id,
-			'declared_value'    => array(
+			'declared_value'     => array(
 				'amount'        => $declared_value,
 				'currency_code' => 'RUB',
 			),
-			'dimensions'        => array(
-				'weight_g'   => $weight_g,
-				'length_mm'  => $length_mm,
-				'width_mm'   => $width_mm,
-				'height_mm'  => $height_mm,
+			'dimensions'         => array(
+				'weight_g'  => $weight_g,
+				'length_mm' => $length_mm,
+				'width_mm'  => $width_mm,
+				'height_mm' => $height_mm,
 			),
 		);
 	}
