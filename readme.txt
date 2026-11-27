@@ -4,7 +4,7 @@ Tags: woocommerce, shipping, ozon, delivery, pickup points
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: GPLv3 or later
 Requires Plugins: woocommerce
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -82,6 +82,9 @@ This plugin talks to two third-party services. Both are operated by their owners
 * Privacy policy: https://yandex.ru/legal/confidential/
 
 == Changelog ==
+
+= 0.5.2 =
+* Text domain and main plugin file now use the approved slug sovetov-ozon-pickup-points.
 
 = 0.5.1 =
 * Text domain kept as the current slug until the new one is reserved.
