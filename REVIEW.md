@@ -10,6 +10,21 @@
   `profiles.wordpress.org/me/profile/edit/group/3/?screen=svn-password`
 - Код готов к выкладке: версия **0.5.2**, главный файл и text domain — `sovetov-ozon-pickup-points`.
 
+## 0.5.3 — перевод, стиль, оформление каталога (27.11.2026)
+
+- Исходные строки переведены на английский (82 строки), русский отдан переводом:
+  `languages/sovetov-ozon-pickup-points-ru_RU.po/.mo` + `.pot`.
+- **Важно:** WordPress не ищет переведённый `.mo` внутри плагина сам — языковые пакеты каталога
+  приходят в `WP_LANG_DIR/plugins`, а свой файл надо подключить через
+  `load_plugin_textdomain( …, dirname( plugin_basename( __FILE__ ) ) . '/languages' )` на `init`.
+  Без этого русского интерфейса нет до установки языкового пакета.
+- phpcs + WordPress: **0 ошибок**, 7 предупреждений (`manage_woocommerce` — не ошибка, незнакомое
+  WPCS право WooCommerce; неиспользуемый параметр фильтра).
+- Иконки и баннеры живут в SVN-папке `assets/` и в архив плагина не входят:
+  `icon-256x256.png`, `icon-128x128.png`, `banner-1544x500.png`, `banner-772x250.png`.
+- Скриншот заменён: оформление заказа с выбранным способом Ozon и кнопкой карты, СДЭК и его
+  упоминания убраны из кадра и из комментариев кода.
+
 ## Опубликовано 27.11.2026
 
 - Версия 0.5.2 в каталоге: https://wordpress.org/plugins/sovetov-ozon-pickup-points/
