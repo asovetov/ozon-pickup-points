@@ -1,4 +1,4 @@
-# Delivery to Ozon Pickup Points for WooCommerce
+# Sovetov Ozon Pickup Points for WooCommerce
 
 [![Release](https://img.shields.io/github/v/release/asovetov/ozon-pickup-points)](https://github.com/asovetov/ozon-pickup-points/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
@@ -16,12 +16,12 @@
 используется для B2B-доставки. С заказами физических лиц он, скорее всего, тоже заработает, но этот
 сценарий мы не проверяли и не гарантируем.
 
-![Выбор пункта выдачи Ozon на оформлении заказа](docs/checkout-pvz.png)
+![Способ доставки Ozon на оформлении заказа](docs/checkout-pvz.png)
 
-**Статус:** 0.3.0. Весь путь заказа собран и проверен на локальном стенде: активация, кэш
-пунктов, поиск и выбор ПВЗ в оформлении, создание заявки кнопкой в заказе, опрос статусов
-кроном. С боевыми ключами Ozon не проверялось: для этого нужен магазин с доступом к
-Delivery API. Не сделано: печать этикеток, отмена и возвраты через API.
+**Статус:** 0.5.3, плагин в [каталоге WordPress.org](https://wordpress.org/plugins/sovetov-ozon-pickup-points/).
+Весь путь заказа собран и проверен на стенде и в бою: активация, кэш пунктов, поиск и выбор ПВЗ
+в оформлении, создание заявки кнопкой в заказе, опрос статусов кроном. Интерфейс на русском и
+английском. Не сделано: печать этикеток, отмена и возвраты через API.
 
 ## Что умеет
 
